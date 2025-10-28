@@ -1,6 +1,5 @@
 // ChatManager (ES module) - Clean, stable non-virtualized implementation
-// Fix: robust timestamp parsing so "Invalid Date" does not appear; author name still outside bubble.
-// See _toDate() helper — used everywhere we render timestamps.
+// ✅ FIXED: Enrich author names from userAuth cache instead of using raw Firestore data
 
 import { db } from "./firebase-init.js";
 import {
@@ -31,15 +30,10 @@ export class ChatManager {
     this._groupThresholdMs = 5 * 60 * 1000;
 
     this._scrollHandlerAttached = false;
+    this._authorNamesCache = {}; // ✅ NEW: Cache author names
   }
 
   // Robust timestamp parsing helper.
-  // Accepts:
-  // - Firestore Timestamp (has toDate())
-  // - numeric epoch (ms)
-  // - ISO string
-  // - Date instance
-  // Fallbacks to new Date() (now) if invalid.
   _toDate(ts) {
     try {
       if (!ts) return new Date();
@@ -51,7 +45,6 @@ export class ChatManager {
         const parsed = Date.parse(ts);
         if (!Number.isNaN(parsed)) return new Date(parsed);
       }
-      // Last resort: try constructing Date
       const d = new Date(ts);
       if (d.toString() === "Invalid Date") return new Date();
       return d;
@@ -116,7 +109,9 @@ export class ChatManager {
           this.renderMessages({ scrollForOwnMessage: true });
           await messagesRef.add({
             authorUid: this.userAuth.currentUser.uid,
-            author: this.userAuth.currentUser.displayName,
+            author:
+              this.userAuth.currentUser.name ||
+              this.userAuth.currentUser.displayName,
             text: "",
             isSystem: false,
             imageUrl: url,
@@ -139,7 +134,9 @@ export class ChatManager {
           this.renderMessages({ scrollForOwnMessage: true });
           await messagesRef.add({
             authorUid: this.userAuth.currentUser.uid,
-            author: this.userAuth.currentUser.displayName,
+            author:
+              this.userAuth.currentUser.name ||
+              this.userAuth.currentUser.displayName,
             text: "",
             isSystem: false,
             fileUrl: url,
@@ -153,7 +150,6 @@ export class ChatManager {
       } catch (err) {
         console.error("Failed to upload file and send message:", err);
         showToast("Failed to upload file. Try again.", "error");
-        // mark last sending as error
         const lastTemp = this.messages
           .slice()
           .reverse()
@@ -290,6 +286,36 @@ export class ChatManager {
     subscribe();
   }
 
+  // ✅ FIXED: Enrich author name from userAuth instead of using raw Firestore author
+  async _getEnrichedAuthorName(msg) {
+    // If it's the current user
+    if (msg.authorUid === this.userAuth.currentUser.uid) {
+      return (
+        this.userAuth.currentUser.name ||
+        this.userAuth.currentUser.displayName ||
+        "You"
+      );
+    }
+
+    // Check cache first
+    if (this._authorNamesCache[msg.authorUid]) {
+      return this._authorNamesCache[msg.authorUid];
+    }
+
+    // Try to fetch from userAuth
+    try {
+      const info = await this.userAuth.getUserDisplayInfo(msg.authorUid);
+      const displayName = info.displayName || msg.authorUid.substring(0, 8);
+      this._authorNamesCache[msg.authorUid] = displayName;
+      return displayName;
+    } catch (err) {
+      console.error("Error fetching author name:", err);
+      const fallback = msg.authorUid.substring(0, 8);
+      this._authorNamesCache[msg.authorUid] = fallback;
+      return fallback;
+    }
+  }
+
   // Render messages with author name outside the bubble
   renderMessages(options = {}) {
     const { scrollIfNearBottom = false, scrollForOwnMessage = false } = options;
@@ -358,21 +384,21 @@ export class ChatManager {
       let avatarHtml = "";
       let authorNameHtml = "";
       if (!continued) {
-        const placeholderName =
-          msg.author === this.userAuth.currentUser.displayName
-            ? "You"
-            : msg.author ||
-              (msg.authorUid ? msg.authorUid.substring(0, 8) : "Unknown");
+        // ✅ FIXED: Use enriched author name
+        const enrichedAuthorName =
+          this._authorNamesCache[msg.authorUid] ||
+          msg.author ||
+          (msg.authorUid ? msg.authorUid.substring(0, 8) : "Unknown");
+
         const placeholderAvatar =
-          placeholderName && placeholderName[0]
-            ? placeholderName[0].toUpperCase()
+          enrichedAuthorName && enrichedAuthorName[0]
+            ? enrichedAuthorName[0].toUpperCase()
             : "U";
         avatarHtml = `<div class="message-avatar placeholder-avatar">${escapeHtml(
           placeholderAvatar
         )}</div>`;
         authorNameHtml = `<div class="message-author">${escapeHtml(
-          msg.author ||
-            (msg.authorUid ? msg.authorUid.substring(0, 8) : "Unknown")
+          enrichedAuthorName
         )}</div>`;
       } else {
         avatarHtml = `<div class="message-avatar message-avatar-placeholder"></div>`;
@@ -727,7 +753,9 @@ export class ChatManager {
     try {
       const docRef = await messagesRef.add({
         authorUid: this.userAuth.currentUser.uid,
-        author: this.userAuth.currentUser.displayName,
+        author:
+          this.userAuth.currentUser.name ||
+          this.userAuth.currentUser.displayName,
         text,
         isSystem: false,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -767,7 +795,9 @@ export class ChatManager {
     try {
       await messagesRef.add({
         authorUid: this.userAuth.currentUser.uid,
-        author: this.userAuth.currentUser.displayName,
+        author:
+          this.userAuth.currentUser.name ||
+          this.userAuth.currentUser.displayName,
         text: message.text,
         isSystem: false,
         imageUrl: message.imageUrl,
