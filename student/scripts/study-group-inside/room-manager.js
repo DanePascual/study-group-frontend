@@ -1,6 +1,6 @@
-// RoomManager class (ES module) — updated to use centralized apiClient for auth'ed requests
+// RoomManager class (ES module) — FIXED: Auto-join + proper participant loading
 import { db } from "./firebase-init.js";
-import { fetchJsonWithAuth, postJsonWithAuth } from "../apiClient.js"; // centralized helpers
+import { fetchJsonWithAuth, postJsonWithAuth } from "../apiClient.js";
 
 export class RoomManager {
   constructor(userAuth) {
@@ -24,11 +24,9 @@ export class RoomManager {
 
       console.log(`[room-manager] Loading room: ${roomId}`);
 
-      // ===== Build the correct API URL =====
       const apiUrl = `${window.__CONFIG__.apiBase}/${roomId}`;
       console.log(`[room-manager] Fetching from: ${apiUrl}`);
 
-      // ===== Use authenticated fetch =====
       const data = await fetchJsonWithAuth(apiUrl, {
         method: "GET",
       });
@@ -42,6 +40,9 @@ export class RoomManager {
       this.isOwner =
         this.currentRoomData.creator === this.userAuth.currentUser.uid;
 
+      // ✅ NEW: Auto-join if not already a participant
+      await this.autoJoinRoom();
+
       await this.loadParticipantsInfo();
       this.isLoading = false;
       return this.currentRoomData;
@@ -49,12 +50,10 @@ export class RoomManager {
       console.error("[room-manager] Error loading room:", err);
       this.isLoading = false;
 
-      // Show error toast
       if (typeof window.showToast === "function") {
         window.showToast(`Failed to load room: ${err.message}`, "error");
       }
 
-      // Redirect to study rooms after 2 seconds
       setTimeout(() => {
         window.location.href = "study-rooms.html";
       }, 2000);
@@ -63,17 +62,55 @@ export class RoomManager {
     }
   }
 
+  // ✅ NEW: Auto-join room if not already a participant
+  async autoJoinRoom() {
+    try {
+      const currentUid = this.userAuth.currentUser?.uid;
+      const participants = this.currentRoomData?.participants || [];
+
+      // If already in participants, skip joining
+      if (participants.includes(currentUid)) {
+        console.log(`[room-manager] User already in room participants`);
+        return;
+      }
+
+      // Not in participants - join now!
+      const roomId = this.currentRoomData._id || this.currentRoomData.id;
+      console.log(`[room-manager] Auto-joining room: ${roomId}`);
+
+      const joinResponse = await postJsonWithAuth(
+        `${window.__CONFIG__.apiBase}/${roomId}/join`,
+        {}
+      );
+
+      console.log(
+        `[room-manager] Successfully joined room. Participants count:`,
+        joinResponse.participantCount
+      );
+
+      // Update local room data with new participants
+      this.currentRoomData.participants = [...participants, currentUid];
+    } catch (err) {
+      console.warn(
+        "[room-manager] Auto-join failed (may already be member):",
+        err
+      );
+      // Don't throw - user might already be in room
+    }
+  }
+
   async loadParticipantsInfo() {
     try {
       this.participants = [];
-
       const currentUid = this.userAuth.currentUser?.uid;
 
+      // ✅ FIXED: Check if participants array exists AND has items
       if (
         !this.currentRoomData?.participants ||
         !Array.isArray(this.currentRoomData.participants) ||
         this.currentRoomData.participants.length === 0
       ) {
+        console.log("[room-manager] No participants, loading self only");
         const selfInfo = await this.userAuth.getUserDisplayInfo(currentUid);
         this.participants = [
           {
@@ -93,19 +130,33 @@ export class RoomManager {
         return;
       }
 
+      // ✅ FIXED: Get all participant UIDs
       const uids = Array.from(
         new Set(this.currentRoomData.participants.filter(Boolean))
       );
+
+      console.log(`[room-manager] Loading ${uids.length} participants:`, uids);
+
+      // ✅ FIXED: Batch fetch ALL participant display infos
       const infosMap = await this.userAuth.getUserDisplayInfos(uids);
+
+      console.log(
+        "[room-manager] Fetched participant infos:",
+        Object.keys(infosMap)
+      );
 
       this.participants = await Promise.all(
         uids.map(async (uid) => {
           try {
+            // ✅ FIXED: Use infosMap first, then fallback
             const info = infosMap[uid] || {
-              displayName: uid.substring(0, 8),
+              displayName: await this.userAuth
+                .getUserDisplayInfo(uid)
+                .then((u) => u.displayName),
               avatar: "U",
               photo: null,
             };
+
             let photo = null;
             if (uid === currentUid) {
               photo =
@@ -127,8 +178,8 @@ export class RoomManager {
 
             return {
               id: uid,
-              name: info.displayName,
-              avatar: info.avatar,
+              name: info.displayName || uid.substring(0, 8),
+              avatar: info.avatar || "U",
               photo: photo,
               status: "online",
               isHost: this.currentRoomData.creator === uid,
@@ -149,6 +200,7 @@ export class RoomManager {
         })
       );
 
+      console.log("[room-manager] Participants loaded:", this.participants);
       this.updateParticipantsList();
     } catch (err) {
       console.error("[room-manager] Error loading participants:", err);
@@ -158,10 +210,13 @@ export class RoomManager {
   updateParticipantsList() {
     const participantsList = document.getElementById("participantsList");
     if (!participantsList) return;
+
     participantsList.innerHTML = this.participants
       .map((p) => {
         const isCurrent = p.id === this.userAuth.currentUser.uid;
+        // ✅ FIXED: Only show kick button if OWNER (not current user)
         const canKick = this.isOwner && !isCurrent;
+
         const avatarHtml = p.photo
           ? `<div class="participant-avatar" style="background-image: url('${
               p.photo
@@ -173,6 +228,7 @@ export class RoomManager {
             }<div class="status-indicator ${
               p.inCall ? "status-in-call" : "status-online"
             }"></div></div>`;
+
         return `<div class="participant-item" data-user-id="${
           p.id
         }">${avatarHtml}<div class="participant-info"><div class="participant-name">${
@@ -186,6 +242,7 @@ export class RoomManager {
         }</div>`;
       })
       .join("");
+
     const participantCount = document.getElementById("participantCount");
     if (participantCount)
       participantCount.textContent = String(this.participants.length);
@@ -268,7 +325,6 @@ export class RoomManager {
     }
   }
 
-  // Use centralized fetch helper for settings save
   async saveRoomSettings() {
     if (!this.currentRoomData) {
       window.showToast?.("Room data not loaded", "error");
@@ -292,7 +348,6 @@ export class RoomManager {
       }
 
       const roomId = this.currentRoomData._id || this.currentRoomData.id;
-      // Use centralized helper: PUT with auth/timeout/retry
       await fetchJsonWithAuth(`${window.__CONFIG__.apiBase}/${roomId}`, {
         method: "PUT",
         body: JSON.stringify({ name: newName, description: newDesc }),

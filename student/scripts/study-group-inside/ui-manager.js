@@ -85,26 +85,32 @@ export class UiManager {
         this.roomManager.currentRoomData.name || "";
       document.getElementById("roomDescInput").value =
         this.roomManager.currentRoomData.description || "";
+
       const participantsList2 = document.getElementById("participantsList2");
       if (participantsList2) {
+        // ✅ FIXED: Only show kick button if user is OWNER
         participantsList2.innerHTML = this.roomManager.participants
           .map((participant) => {
+            const isCurrent = participant.id === this.userAuth.currentUser.uid;
+            const canKick = this.roomManager.isOwner && !isCurrent; // ✅ FIXED!
+
             return `<div class="d-flex justify-content-between align-items-center p-2 border rounded mb-2"><div class="d-flex align-items-center gap-2"><div class="participant-avatar" style="width:24px;height:24px;font-size:12px;">${
               participant.avatar
             }</div><span>${participant.name}${
-              participant.id === this.userAuth.currentUser.uid ? " (You)" : ""
+              isCurrent ? " (You)" : ""
             }</span>${
               participant.isHost
                 ? '<span class="badge bg-primary">Host</span>'
                 : ""
             }</div>${
-              participant.id !== this.userAuth.currentUser.uid
+              canKick // ✅ Only show button if canKick is true
                 ? `<button class="btn btn-outline-danger btn-sm" onclick="window.kickParticipant('${participant.id}')"><i class="bi bi-x-lg"></i> Kick</button>`
                 : ""
             }</div>`;
           })
           .join("");
       }
+
       if (window.chatModule) window.chatModule.updateFilesListInSettings();
       const deleteBtn = document.getElementById("deleteRoomBtn");
       if (deleteBtn)
