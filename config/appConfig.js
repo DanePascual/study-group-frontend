@@ -4,7 +4,8 @@
 // - Falls back to a sensible default for local development.
 // - Exports API_BASE and apiUrl(path) for consistent usage across modules.
 
-const DEFAULT_API_BASE = "http://localhost:5000";
+const DEFAULT_API_BASE =
+  "https://study-group-backend-d8fc93ae1b7a.herokuapp.com";
 
 // Prefer a runtime override on window for easy environment switches (staging/prod).
 // You can set window.API_BASE in a server-rendered <script> tag in production.
