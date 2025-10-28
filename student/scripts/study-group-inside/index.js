@@ -29,15 +29,34 @@ async function initializeApp() {
 
     showPageLoading();
 
+    console.log("[index.js] Starting initialization...");
+
     userModule = new UserAuth();
+    console.log("[index.js] UserAuth created");
+
     await userModule.init();
+    console.log(
+      "[index.js] UserAuth initialized, user:",
+      userModule.currentUser?.displayName
+    );
 
     roomModule = new RoomManager(userModule);
+    console.log("[index.js] RoomManager created");
+
     await roomModule.loadRoomData();
+    console.log(
+      "[index.js] RoomData loaded:",
+      roomModule.currentRoomData?.name
+    );
 
     chatModule = new ChatManager(userModule, roomModule);
+    console.log("[index.js] ChatManager created");
+
     videoModule = new VideoManager(userModule, roomModule);
+    console.log("[index.js] VideoManager created");
+
     uiModule = new UiManager(userModule, roomModule);
+    console.log("[index.js] UiManager created");
 
     // attach to window for legacy HTML handlers and debugging
     window.userModule = userModule;
@@ -49,15 +68,27 @@ async function initializeApp() {
     window.UiManager = UiManager;
     window.closeToast = closeToast;
 
+    console.log("[index.js] All modules attached to window");
+
     // update UI
     userModule.updateSidebarUserInfo();
+    console.log("[index.js] Sidebar user info updated");
+
     await roomModule.updateRoomDisplay();
+    console.log("[index.js] Room display updated");
+
     roomModule.updateParticipantsList();
+    console.log("[index.js] Participants list updated");
 
     // init modules
     chatModule.init();
+    console.log("[index.js] ChatManager initialized");
+
     videoModule.init();
+    console.log("[index.js] VideoManager initialized");
+
     uiModule.init();
+    console.log("[index.js] UiManager initialized");
 
     setTimeout(() => {
       showToast(
@@ -92,16 +123,21 @@ async function initializeApp() {
     }, 800);
 
     console.log(
-      `Study room ready for ${
+      `[index.js] ✅ Study room ready for ${
         userModule.currentUser.displayName
       } at ${new Date().toLocaleString()}`
     );
   } catch (err) {
-    console.error("Error initializing app:", err);
+    console.error("[index.js] ❌ Error initializing app:", err);
+    console.error("[index.js] Error stack:", err && err.stack);
     showToast(
       "Failed to initialize study room. Please try refreshing the page.",
       "error"
     );
+    // ✅ ADDED: Retry after 2 seconds
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   } finally {
     hidePageLoading();
   }
