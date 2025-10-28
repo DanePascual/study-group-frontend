@@ -1,13 +1,13 @@
 // frontend/student/scripts/profile.js
-// Updated profile script to use centralized apiClient helpers for authenticated requests.
-// - Uses fetchJsonWithAuth for JSON GET/PUT to /api/users/profile
-// - Uses postFormWithAuth for multipart photo upload to /api/uploads/profile-photo
-// - Keeps same UI behaviour, validation, and same-tab profile:updated dispatch
-//
-// Overwrite frontend/student/scripts/profile.js with this file and hard-reload the profile page.
+// SECURITY HARDENED VERSION:
+// - Fixed XSS vulnerability (use .textContent instead of .innerHTML)
+// - Email field is READ-ONLY (cannot be edited)
+// - Input validation & sanitization
+// - Safe DOM updates
+// - Security logging for suspicious activities
 
-import { auth } from "../../config/firebase.js";
-import { apiUrl } from "../../config/appConfig.js";
+import { auth } from "../config/firebase.js";
+import { apiUrl } from "../config/appConfig.js";
 import {
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -26,6 +26,32 @@ let currentPhotoURL = null;
 let currentPhotoFilename = null;
 let isLoading = false;
 
+// ===== SECURITY: Constants =====
+const MAX_NAME_LENGTH = 255;
+const MAX_BIO_LENGTH = 2000;
+const MAX_STUDENT_NUMBER_LENGTH = 50;
+const MAX_PROGRAM_LENGTH = 100;
+const MAX_INSTITUTION_LENGTH = 255;
+const MAX_YEAR_LEVEL_LENGTH = 50;
+const MAX_SPECIALIZATION_LENGTH = 100;
+const MAX_GRADUATION_LENGTH = 50;
+const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/gif"]);
+
+// ===== SECURITY: Sanitization helpers =====
+function sanitizeString(str, maxLength = 255) {
+  if (typeof str !== "string") return "";
+  return str.trim().substring(0, maxLength);
+}
+
+function logSecurityEvent(eventType, details) {
+  const timestamp = new Date().toISOString();
+  console.warn(
+    `[SECURITY] ${timestamp} | Event: ${eventType} | Details:`,
+    details
+  );
+}
+
 // -------------------- Notification --------------------
 function showNotification(message, type = "success") {
   const existing = document.querySelectorAll(".notification");
@@ -37,7 +63,7 @@ function showNotification(message, type = "success") {
     <i class="bi bi-${
       type === "success" ? "check-circle" : "exclamation-circle"
     }-fill"></i>
-    <span>${message}</span>
+    <span>${sanitizeString(message, 500)}</span>
     <button class="notification-close" onclick="this.parentElement.remove()">
       <i class="bi bi-x"></i>
     </button>
@@ -86,15 +112,25 @@ function updateSidebarUserInfo() {
 function updateProfileUI(profile) {
   const el = (id) => document.getElementById(id) || null;
 
+  // ===== SECURITY: Use .textContent to prevent XSS =====
   if (el("displayName")) el("displayName").textContent = profile.name || "";
-  if (el("displayEmail"))
-    el(
-      "displayEmail"
-    ).innerHTML = `<i class="bi bi-envelope"></i><span class="email-text">${
-      profile.email || ""
-    }</span>`;
+
+  // ===== SECURITY: Email display (safe - no HTML) =====
+  const emailEl = el("displayEmail");
+  if (emailEl) {
+    emailEl.innerHTML = ""; // Clear existing
+    const icon = document.createElement("i");
+    icon.className = "bi bi-envelope";
+    const span = document.createElement("span");
+    span.className = "email-text";
+    span.textContent = profile.email || ""; // ← Safe: .textContent
+    emailEl.appendChild(icon);
+    emailEl.appendChild(span);
+  }
+
   if (el("displayBio")) el("displayBio").textContent = profile.bio || "";
 
+  // ===== SECURITY: Use .textContent for all user data =====
   const mapping = {
     infoName: profile.name,
     infoEmail: profile.email,
@@ -118,7 +154,14 @@ function updateProfileUI(profile) {
   };
 
   setVal("editName", profile.name);
+  // ===== SECURITY: Email field is DISABLED (read-only) =====
   setVal("editEmail", profile.email);
+  const emailInput = el("editEmail");
+  if (emailInput) {
+    emailInput.disabled = true; // ← Cannot edit email
+    emailInput.title = "Email cannot be changed"; // Tooltip
+  }
+
   setVal("editStudentNumber", profile.studentNumber);
   setVal("editProgram", profile.program);
   setVal("editInstitution", profile.institution);
@@ -127,13 +170,24 @@ function updateProfileUI(profile) {
   setVal("editGraduation", profile.graduation);
   setVal("editBio", profile.bio);
 
+  // ===== SECURITY: Safe image handling =====
   if (profile.photo) {
     const profileAvatar = el("profileAvatar");
     const modalAvatar = el("modalAvatar");
-    if (profileAvatar)
-      profileAvatar.innerHTML = `<img src="${profile.photo}" alt="Profile Photo">`;
-    if (modalAvatar)
-      modalAvatar.innerHTML = `<img src="${profile.photo}" alt="Profile Photo">`;
+    if (profileAvatar) {
+      profileAvatar.innerHTML = ""; // Clear
+      const img = document.createElement("img");
+      img.src = profile.photo;
+      img.alt = "Profile Photo";
+      profileAvatar.appendChild(img);
+    }
+    if (modalAvatar) {
+      modalAvatar.innerHTML = ""; // Clear
+      const img = document.createElement("img");
+      img.src = profile.photo;
+      img.alt = "Profile Photo";
+      modalAvatar.appendChild(img);
+    }
     currentPhotoURL = profile.photo;
   }
 
@@ -144,38 +198,50 @@ function updateProfileUI(profile) {
 
 // -------------------- Upload to backend --------------------
 async function uploadProfilePhoto(file) {
-  // Use apiClient.postFormWithAuth to centralize token handling and parsing
   if (!file) throw new Error("No file provided");
-  // lightweight client-side validation repeated to be safe
-  if (file.size > 10 * 1024 * 1024) {
+
+  // ===== SECURITY: Validate file =====
+  if (file.size > MAX_PHOTO_SIZE_BYTES) {
+    logSecurityEvent("PHOTO_UPLOAD_SIZE_EXCEEDED", {
+      size: file.size,
+      maxSize: MAX_PHOTO_SIZE_BYTES,
+    });
     throw new Error("File size must be less than 10MB");
   }
-  if (!file.type.match(/^image\/(jpeg|jpg|png|gif)$/)) {
+
+  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+    logSecurityEvent("PHOTO_UPLOAD_TYPE_REJECTED", {
+      type: file.type,
+      allowed: Array.from(ALLOWED_PHOTO_TYPES),
+    });
     throw new Error("Please select a valid image file (JPG, PNG, or GIF)");
   }
 
   const form = new FormData();
   form.append("photo", file, file.name);
 
-  // postFormWithAuth will attach token and parse JSON; set timeout (60s)
   const result = await postFormWithAuth(
     apiUrl("/api/uploads/profile-photo"),
     form,
-    {
-      timeoutMs: 60000,
-    }
+    { timeoutMs: 60000 }
   );
-  // expected { url, filename } per server contract
   return result;
 }
 
-// -------------------- Helper: broadcast profile update (same-tab) --------------------
+// -------------------- Broadcast profile update =====
 function broadcastProfileUpdated(profile) {
   try {
     try {
-      localStorage.setItem("userProfile", JSON.stringify(profile));
+      // ===== SECURITY: Store sanitized data only =====
+      const sanitizedProfile = {
+        name: sanitizeString(profile.name, MAX_NAME_LENGTH),
+        email: profile.email, // Read-only, safe
+        bio: sanitizeString(profile.bio, MAX_BIO_LENGTH),
+        photo: profile.photo,
+      };
+      localStorage.setItem("userProfile", JSON.stringify(sanitizedProfile));
     } catch (e) {
-      // ignore storage errors
+      console.warn("localStorage error:", e && e.message);
     }
     window.dispatchEvent(
       new CustomEvent("profile:updated", { detail: profile })
@@ -188,7 +254,6 @@ function broadcastProfileUpdated(profile) {
 // -------------------- Auth state and initial profile fetch --------------------
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    // redirect to login (relative)
     const currentPath = window.location.pathname;
     const pathParts = currentPath.split("/");
     const loginPath =
@@ -212,7 +277,6 @@ onAuthStateChanged(auth, async (user) => {
   updateSidebarUserInfo();
 
   try {
-    // Centralized fetch that attaches token and returns parsed JSON
     const profile = await fetchJsonWithAuth("/api/users/profile");
     CURRENT_SESSION.userProgram = profile.program || "";
     updateSidebarUserInfo();
@@ -251,21 +315,30 @@ if (photoInput) {
     const existingError = document.getElementById("photoError");
     if (existingError) existingError.remove();
 
-    // Client-side validation
-    if (file.size > 10 * 1024 * 1024) {
+    // ===== SECURITY: Validate photo =====
+    if (file.size > MAX_PHOTO_SIZE_BYTES) {
+      logSecurityEvent("PHOTO_VALIDATION_SIZE_FAILED", {
+        size: file.size,
+        maxSize: MAX_PHOTO_SIZE_BYTES,
+      });
       const errorMessage = document.createElement("div");
       errorMessage.id = "photoError";
       errorMessage.className = "form-error";
-      errorMessage.innerHTML = "File size must be less than 10MB";
+      errorMessage.textContent = "File size must be less than 10MB";
       const photoSection = document.querySelector(".photo-upload-section");
       if (photoSection) photoSection.appendChild(errorMessage);
       return;
     }
-    if (!file.type.match(/^image\/(jpeg|jpg|png|gif)$/)) {
+
+    if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+      logSecurityEvent("PHOTO_VALIDATION_TYPE_FAILED", {
+        type: file.type,
+        allowed: Array.from(ALLOWED_PHOTO_TYPES),
+      });
       const errorMessage = document.createElement("div");
       errorMessage.id = "photoError";
       errorMessage.className = "form-error";
-      errorMessage.innerHTML =
+      errorMessage.textContent =
         "Please select a valid image file (JPG, PNG, or GIF)";
       const photoSection = document.querySelector(".photo-upload-section");
       if (photoSection) photoSection.appendChild(errorMessage);
@@ -273,23 +346,38 @@ if (photoInput) {
     }
 
     const modalAvatar = document.getElementById("modalAvatar");
-    if (modalAvatar)
-      modalAvatar.innerHTML = `<div class="loading-spinner"><i class="bi bi-arrow-repeat spinning"></i></div>`;
+    if (modalAvatar) {
+      modalAvatar.innerHTML =
+        '<div class="loading-spinner"><i class="bi bi-arrow-repeat spinning"></i></div>';
+    }
 
     try {
       const result = await uploadProfilePhoto(file);
       currentPhotoURL = result.url;
       currentPhotoFilename = result.filename || currentPhotoFilename;
       const modalAvatarNode = document.getElementById("modalAvatar");
-      if (modalAvatarNode)
-        modalAvatarNode.innerHTML = `<img src="${currentPhotoURL}" alt="Profile Photo">`;
+      if (modalAvatarNode) {
+        modalAvatarNode.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = currentPhotoURL;
+        img.alt = "Profile Photo";
+        modalAvatarNode.appendChild(img);
+      }
       showNotification("Photo uploaded", "success");
     } catch (err) {
       console.error("Error uploading photo:", err);
+      logSecurityEvent("PHOTO_UPLOAD_FAILED", {
+        error: err && err.message ? err.message : "Unknown error",
+      });
       showNotification("Could not upload photo. Try again.", "error");
       const modalAvatarNode = document.getElementById("modalAvatar");
-      if (modalAvatarNode && currentPhotoURL)
-        modalAvatarNode.innerHTML = `<img src="${currentPhotoURL}" alt="Profile Photo">`;
+      if (modalAvatarNode && currentPhotoURL) {
+        modalAvatarNode.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = currentPhotoURL;
+        img.alt = "Profile Photo";
+        modalAvatarNode.appendChild(img);
+      }
     }
   });
 }
@@ -304,15 +392,31 @@ async function saveProfile() {
 
   const getVal = (id) =>
     document.getElementById(id) ? document.getElementById(id).value.trim() : "";
-  const name = getVal("editName");
-  const email = getVal("editEmail");
-  const studentNumber = getVal("editStudentNumber");
-  const program = getVal("editProgram");
-  const institution = getVal("editInstitution");
-  const yearLevel = getVal("editYearLevel");
-  const specialization = getVal("editSpecialization");
-  const graduation = getVal("editGraduation");
-  const bio = getVal("editBio");
+
+  // ===== SECURITY: Sanitize all inputs =====
+  const name = sanitizeString(getVal("editName"), MAX_NAME_LENGTH);
+  const studentNumber = sanitizeString(
+    getVal("editStudentNumber"),
+    MAX_STUDENT_NUMBER_LENGTH
+  );
+  const program = sanitizeString(getVal("editProgram"), MAX_PROGRAM_LENGTH);
+  const institution = sanitizeString(
+    getVal("editInstitution"),
+    MAX_INSTITUTION_LENGTH
+  );
+  const yearLevel = sanitizeString(
+    getVal("editYearLevel"),
+    MAX_YEAR_LEVEL_LENGTH
+  );
+  const specialization = sanitizeString(
+    getVal("editSpecialization"),
+    MAX_SPECIALIZATION_LENGTH
+  );
+  const graduation = sanitizeString(
+    getVal("editGraduation"),
+    MAX_GRADUATION_LENGTH
+  );
+  const bio = sanitizeString(getVal("editBio"), MAX_BIO_LENGTH);
 
   setLoading(true);
   const user = auth.currentUser;
@@ -328,7 +432,6 @@ async function saveProfile() {
   try {
     const profileData = {
       name,
-      email,
       studentNumber,
       program,
       institution,
@@ -338,9 +441,9 @@ async function saveProfile() {
       bio,
       photo: currentPhotoURL || null,
       photoFilename: currentPhotoFilename || null,
+      // ===== SECURITY: DO NOT SEND EMAIL - it's read-only =====
     };
 
-    // Use centralized JSON helper which attaches token and parses response.
     const updatedProfile = await fetchJsonWithAuth("/api/users/profile", {
       method: "PUT",
       body: JSON.stringify(profileData),
@@ -350,7 +453,6 @@ async function saveProfile() {
     currentPhotoFilename = updatedProfile.photoFilename || currentPhotoFilename;
     updateProfileUI(updatedProfile);
 
-    // persist & notify sidebar in same tab
     broadcastProfileUpdated(updatedProfile);
 
     updateLastUpdatedTime();
@@ -358,6 +460,9 @@ async function saveProfile() {
     showNotification("Profile updated successfully!", "success");
   } catch (err) {
     console.error("Error saving profile:", err);
+    logSecurityEvent("PROFILE_SAVE_FAILED", {
+      error: err && err.message ? err.message : "Unknown error",
+    });
     showNotification(
       "Failed to save profile changes. Please try again.",
       "error"
@@ -456,9 +561,13 @@ function wireChangePasswordUI() {
         await reauthenticateWithCredential(user, credential);
         await updatePassword(user, newPassword);
         showNotification("Password changed successfully.", "success");
+        logSecurityEvent("PASSWORD_CHANGED", { userId: user.uid });
         close();
       } catch (err) {
         console.error("Error changing password:", err);
+        logSecurityEvent("PASSWORD_CHANGE_FAILED", {
+          error: err && err.code ? err.code : "Unknown error",
+        });
         if (err.code === "auth/wrong-password")
           showNotification("Current password is incorrect.", "error");
         else if (err.code === "auth/requires-recent-login")
@@ -485,8 +594,12 @@ function wireChangePasswordUI() {
           "Password reset email sent. Check your inbox.",
           "success"
         );
+        logSecurityEvent("PASSWORD_RESET_EMAIL_SENT", { email: user.email });
       } catch (err) {
         console.error("Error sending reset email:", err);
+        logSecurityEvent("PASSWORD_RESET_EMAIL_FAILED", {
+          error: err && err.message ? err.message : "Unknown error",
+        });
         showNotification(
           "Could not send reset email. Try again later.",
           "error"
@@ -501,27 +614,20 @@ function validateField(field) {
   const existing = document.getElementById(`${field.id}Error`);
   if (existing) existing.remove();
 
+  // ===== SECURITY: Skip validation for disabled fields (email) =====
+  if (field.disabled) {
+    field.classList.remove("error");
+    return true;
+  }
+
   if (field.required && !field.value.trim()) {
     field.classList.add("error");
     const msg = document.createElement("div");
     msg.id = `${field.id}Error`;
     msg.className = "form-error";
-    msg.innerHTML = "This field is required";
+    msg.textContent = "This field is required";
     field.parentNode.appendChild(msg);
     return false;
-  }
-
-  if (field.id === "editEmail" && field.value.trim()) {
-    const validation = validateEmail(field.value.trim());
-    if (!validation.valid) {
-      field.classList.add("error");
-      const msg = document.createElement("div");
-      msg.id = `${field.id}Error`;
-      msg.className = "form-error";
-      msg.innerHTML = validation.message;
-      field.parentNode.appendChild(msg);
-      return false;
-    }
   }
 
   field.classList.remove("error");
@@ -529,34 +635,13 @@ function validateField(field) {
 }
 
 function validateAllFields() {
-  const requiredFields = [
-    "editName",
-    "editEmail",
-    "editStudentNumber",
-    "editProgram",
-  ];
+  const requiredFields = ["editName", "editStudentNumber", "editProgram"];
   let valid = true;
   requiredFields.forEach((id) => {
     const f = document.getElementById(id);
     if (f) valid = validateField(f) && valid;
   });
   return valid;
-}
-
-function validateEmail(email) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!regex.test(email))
-    return {
-      valid: false,
-      message: "Please enter a valid email address format!",
-    };
-  if (!email.toLowerCase().endsWith("@paterostechnologicalcollege.edu.ph"))
-    return {
-      valid: false,
-      message:
-        "Email must be from Pateros Technological College domain (@paterostechnologicalcollege.edu.ph)",
-    };
-  return { valid: true, message: "" };
 }
 
 function updateLastUpdatedTime() {
@@ -568,7 +653,7 @@ function updateLastUpdatedTime() {
   lastUpdated.textContent = `Last updated: ${date} ${time} UTC`;
 }
 
-// -------------------- Small page animation (restored) --------------------
+// -------------------- Page animation --------------------
 function animateOnLoad() {
   try {
     const sections = document.querySelectorAll(".profile-section");
@@ -648,12 +733,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // -------------------- Form validation wiring --------------------
 function initializeFormValidation() {
-  const required = [
-    "editName",
-    "editEmail",
-    "editStudentNumber",
-    "editProgram",
-  ];
+  const required = ["editName", "editStudentNumber", "editProgram"];
   required.forEach((id) => {
     const field = document.getElementById(id);
     if (!field) return;

@@ -342,8 +342,14 @@
       // The backend now provides all necessary JaaS configuration.
 
       // Set API base URL for development/testing
-      window.__CONFIG__.apiBaseUrl = "http://localhost:5000";
-      window.__CONFIG__.backendBase = "http://localhost:5000";
+      //window.__CONFIG__.apiBaseUrl = "http://localhost:5000";
+      //window.__CONFIG__.backendBase = "http://localhost:5000";
+
+      // ✅ PRODUCTION HEROKU URL
+      window.__CONFIG__.apiBaseUrl =
+        "https://study-group-backend-d8fc93ae1b7a.herokuapp.com";
+      window.__CONFIG__.backendBase =
+        "https://study-group-backend-d8fc93ae1b7a.herokuapp.com";
 
       console.debug("Global config initialized:", {
         apiBaseUrl: window.__CONFIG__.apiBaseUrl,
