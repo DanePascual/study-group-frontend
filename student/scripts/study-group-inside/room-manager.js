@@ -1,4 +1,5 @@
-// RoomManager class (ES module) — FIXED: Auto-join + proper participant loading
+// RoomManager class (ES module) — FIXED: Auto-join + proper participant loading + RACE CONDITION FIX
+// ✅ CRITICAL: Synchronous map instead of Promise.all to prevent re-render conflicts
 import { db } from "./firebase-init.js";
 import { fetchJsonWithAuth, postJsonWithAuth } from "../apiClient.js";
 
@@ -9,6 +10,7 @@ export class RoomManager {
     this.isOwner = false;
     this.participants = [];
     this.isLoading = true;
+    this._isUpdatingParticipants = false; // ✅ NEW: Prevent concurrent updates
   }
 
   async loadRoomData() {
@@ -40,9 +42,10 @@ export class RoomManager {
       this.isOwner =
         this.currentRoomData.creator === this.userAuth.currentUser.uid;
 
-      // ✅ NEW: Auto-join if not already a participant
+      // ✅ AUTO-JOIN: Add user to participants if not already
       await this.autoJoinRoom();
 
+      // ✅ CRITICAL: Load participants with new stable approach
       await this.loadParticipantsInfo();
       this.isLoading = false;
       return this.currentRoomData;
@@ -62,7 +65,7 @@ export class RoomManager {
     }
   }
 
-  // ✅ NEW: Auto-join room if not already a participant
+  // ✅ AUTO-JOIN: Add user to room participants if not already present
   async autoJoinRoom() {
     try {
       const currentUid = this.userAuth.currentUser?.uid;
@@ -70,7 +73,9 @@ export class RoomManager {
 
       // If already in participants, skip joining
       if (participants.includes(currentUid)) {
-        console.log(`[room-manager] User already in room participants`);
+        console.log(
+          `[room-manager] User ${currentUid} already in room participants`
+        );
         return;
       }
 
@@ -99,12 +104,28 @@ export class RoomManager {
     }
   }
 
+  // ✅ CRITICAL FIX: Prevent race condition by fetching ALL data first
   async loadParticipantsInfo() {
+    // ✅ NEW: Prevent concurrent updates
+    if (this._isUpdatingParticipants) {
+      console.warn(
+        "[room-manager] Already updating participants, skipping duplicate call"
+      );
+      return;
+    }
+
+    this._isUpdatingParticipants = true;
+
     try {
       this.participants = [];
       const currentUid = this.userAuth.currentUser?.uid;
 
-      // ✅ FIXED: Check if participants array exists AND has items
+      console.log(
+        "[room-manager] Starting loadParticipantsInfo for user:",
+        currentUid
+      );
+
+      // Check if participants array exists AND has items
       if (
         !this.currentRoomData?.participants ||
         !Array.isArray(this.currentRoomData.participants) ||
@@ -127,94 +148,106 @@ export class RoomManager {
           },
         ];
         this.updateParticipantsList();
+        this._isUpdatingParticipants = false;
         return;
       }
 
-      // ✅ FIXED: Get all participant UIDs
+      // ✅ CRITICAL: Get all participant UIDs first
       const uids = Array.from(
         new Set(this.currentRoomData.participants.filter(Boolean))
       );
 
       console.log(`[room-manager] Loading ${uids.length} participants:`, uids);
 
-      // ✅ FIXED: Batch fetch ALL participant display infos
+      // ✅ CRITICAL: Batch fetch ALL participant display infos in ONE call
       const infosMap = await this.userAuth.getUserDisplayInfos(uids);
 
       console.log(
         "[room-manager] Fetched participant infos:",
-        Object.keys(infosMap)
+        Object.entries(infosMap)
+          .map((e) => `${e[0].substring(0, 8)}=${e[1].displayName}`)
+          .join(", ")
       );
 
-      this.participants = await Promise.all(
-        uids.map(async (uid) => {
-          try {
-            // ✅ FIXED: Use infosMap first, then fallback
-            const info = infosMap[uid] || {
-              displayName: await this.userAuth
-                .getUserDisplayInfo(uid)
-                .then((u) => u.displayName),
-              avatar: "U",
-              photo: null,
-            };
+      // ✅ CRITICAL FIX: Synchronous map (NOT async) to prevent race conditions
+      // All data is already fetched, just build the array without any async calls
+      this.participants = uids.map((uid) => {
+        try {
+          const info = infosMap[uid] || {
+            displayName: uid.substring(0, 8),
+            avatar: "U",
+            photo: null,
+          };
 
-            let photo = null;
-            if (uid === currentUid) {
-              photo =
-                this.userAuth.currentUser.photoURL ||
-                this.userAuth.currentUser.photo ||
-                info.photo ||
-                null;
-            } else {
-              photo = info.photo || null;
-              if (!photo) {
-                try {
-                  const doc = await db.collection("users").doc(uid).get();
-                  if (doc.exists && doc.data().photo) photo = doc.data().photo;
-                } catch (e) {
-                  // ignore read errors
-                }
-              }
-            }
-
-            return {
-              id: uid,
-              name: info.displayName || uid.substring(0, 8),
-              avatar: info.avatar || "U",
-              photo: photo,
-              status: "online",
-              isHost: this.currentRoomData.creator === uid,
-              inCall: false,
-            };
-          } catch (err) {
-            console.error("Error building participant info for", uid, err);
-            return {
-              id: uid,
-              name: uid.substring(0, 8),
-              avatar: "U",
-              photo: null,
-              status: "online",
-              isHost: this.currentRoomData.creator === uid,
-              inCall: false,
-            };
+          let photo = null;
+          if (uid === currentUid) {
+            photo =
+              this.userAuth.currentUser.photoURL ||
+              this.userAuth.currentUser.photo ||
+              info.photo ||
+              null;
+          } else {
+            photo = info.photo || null;
           }
-        })
+
+          const participant = {
+            id: uid,
+            name: info.displayName || uid.substring(0, 8),
+            avatar: info.avatar || "U",
+            photo: photo,
+            status: "online",
+            isHost: this.currentRoomData.creator === uid,
+            inCall: false,
+          };
+
+          console.log(
+            `[room-manager] Built participant: ${uid.substring(0, 8)} = ${
+              participant.name
+            }`
+          );
+
+          return participant;
+        } catch (err) {
+          console.error("Error building participant info for", uid, err);
+          return {
+            id: uid,
+            name: uid.substring(0, 8),
+            avatar: "U",
+            photo: null,
+            status: "online",
+            isHost: this.currentRoomData.creator === uid,
+            inCall: false,
+          };
+        }
+      });
+
+      console.log(
+        "[room-manager] All participants loaded successfully:",
+        this.participants.map((p) => p.name).join(", ")
       );
 
-      console.log("[room-manager] Participants loaded:", this.participants);
+      // ✅ CRITICAL: Update UI once with complete data
       this.updateParticipantsList();
     } catch (err) {
       console.error("[room-manager] Error loading participants:", err);
+    } finally {
+      this._isUpdatingParticipants = false;
     }
   }
 
+  // ✅ STABLE: Render participants list from the in-memory array
   updateParticipantsList() {
     const participantsList = document.getElementById("participantsList");
     if (!participantsList) return;
 
+    console.log(
+      "[room-manager] Updating participants list UI with:",
+      this.participants.map((p) => p.name).join(", ")
+    );
+
     participantsList.innerHTML = this.participants
       .map((p) => {
         const isCurrent = p.id === this.userAuth.currentUser.uid;
-        // ✅ FIXED: Only show kick button if OWNER (not current user)
         const canKick = this.isOwner && !isCurrent;
 
         const avatarHtml = p.photo
@@ -246,8 +279,11 @@ export class RoomManager {
     const participantCount = document.getElementById("participantCount");
     if (participantCount)
       participantCount.textContent = String(this.participants.length);
+
+    console.log("[room-manager] Participants list UI updated");
   }
 
+  // ✅ UPDATE: Mark participant as in/out of call
   updateParticipantCallStatus(userId, inCall) {
     const p = this.participants.find((x) => x.id === userId);
     if (p) {
@@ -256,6 +292,7 @@ export class RoomManager {
     }
   }
 
+  // ✅ UPDATE: Room display information
   async updateRoomDisplay() {
     try {
       if (!this.currentRoomData) return;
@@ -325,6 +362,7 @@ export class RoomManager {
     }
   }
 
+  // ✅ SAVE: Room settings (name & description)
   async saveRoomSettings() {
     if (!this.currentRoomData) {
       window.showToast?.("Room data not loaded", "error");
@@ -376,6 +414,7 @@ export class RoomManager {
     }
   }
 
+  // ✅ DELETE: Remove room (owner only)
   async deleteRoom() {
     if (!this.isOwner) {
       window.showToast?.("Only the room owner can delete this room.", "error");
@@ -413,6 +452,7 @@ export class RoomManager {
     }
   }
 
+  // ✅ KICK: Remove participant from room (owner only)
   async kickParticipant(userId) {
     if (!this.isOwner) {
       window.showToast?.(
