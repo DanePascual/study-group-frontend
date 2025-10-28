@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles/profile.css" />
+    <style>
+      /* Inline styles retained from original file for notifications, overlays, etc. */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        background: #fff;
+        border-left: 5px solid #4caf50;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1050;
+        display: flex;
+        align-items: center;
+        max-width: 400px;
+        border-radius: 4px;
+        transform: translateX(120%);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+      .notification.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .notification.error {
+        border-left-color: #f44336;
+      }
+      .notification i {
+        margin-right: 12px;
+        font-size: 20px;
+      }
+      .notification i.bi-check-circle-fill {
+        color: #4caf50;
+      }
+      .notification i.bi-exclamation-circle-fill {
+        color: #f44336;
+      }
+      .notification span {
+        flex: 1;
+        color: var(--dark-text);
+      }
+      .notification-close {
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 10px;
+      }
+      .form-error {
+        color: #f44336;
+        font-size: 12px;
+        margin-top: 5px;
+        display: block;
+      }
+      .form-input.error,
+      .form-textarea.error {
+        border-color: #f44336;
+      }
+      .form-label::after {
+        content: " *";
+        color: #f44336;
+        display: inline-block;
+      }
+      .modal.loading {
+        position: relative;
+      }
+      .modal.loading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .spinning {
+        animation: spin 1s linear infinite;
+        display: inline-block;
+      }
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      #lastUpdated {
+        font-size: 12px;
+        color: var(--medium-text);
+        text-align: right;
+        margin-top: 10px;
+      }
+      /* Loading overlay for initial page load */
+      #loadingOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+      }
+      #loadingOverlay.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+      body.dark-mode #loadingOverlay {
+        background: rgba(33, 33, 33, 0.9);
+      }
+
+      /* Minimal styling for Change Password modal to match existing UI */
+      #changePasswordModal .modal-content {
+        max-width: 520px;
+        margin: 20px auto;
+      }
+    </style>
+    <title>Profile - Study Group</title>
+  </head>
+  <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+      <div class="spinner">
+        <i class="bi bi-arrow-repeat spinning"></i>
+      </div>
+      <p>Loading your profile...</p>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <i class="bi bi-book"></i>
+          StudyGroup
+        </div>
+      </div>
+      <nav class="sidebar-menu">
+        <a href="dashboard.html" class="sidebar-item">
+          <i class="bi bi-house"></i>
+          Dashboard
+        </a>
+        <a href="profile.html" class="sidebar-item active">
+          <i class="bi bi-person"></i>
+          Profile
+        </a>
+        <a href="study-rooms.html" class="sidebar-item">
+          <i class="bi bi-door-open"></i>
+          Study Rooms
+        </a>
+        <a href="resources.html" class="sidebar-item">
+          <i class="bi bi-folder"></i>
+          Resources
+        </a>
+        <a href="discussion.html" class="sidebar-item">
+          <i class="bi bi-chat-dots"></i>
+          Discussion Forum
+        </a>
+        <a href="report.html" class="sidebar-item">
+          <i class="bi bi-flag"></i>
+          Report
+        </a>
+      </nav>
+      <!-- Update the sidebar-footer section -->
+      <div class="sidebar-footer">
+        <div
+          class="user-info"
+          style="cursor: pointer; transition: all 0.3s ease"
+        >
+          <div class="user-avatar" id="sidebarAvatar"></div>
+          <div>
+            <div style="font-weight: bold; font-size: 14px" id="sidebarName">
+              Loading...
+            </div>
+            <div style="font-size: 12px; opacity: 0.8" id="sidebarCourse">
+              Loading...
+            </div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-btn">
+          <i class="bi bi-box-arrow-right"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <!-- Top Navigation -->
+      <div class="top-nav">
+        <div class="nav-left">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="bi bi-list"></i>
+          </button>
+          <h1 class="page-title">Profile</h1>
+        </div>
+        <div class="nav-actions">
+          <!-- Keyboard shortcut hint -->
+          <span class="shortcut-hint">Ctrl+E to edit</span>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            aria-label="Toggle theme"
+          >
+            <i class="bi bi-moon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Profile Content -->
+      <div class="profile-content">
+        <!-- Profile Header -->
+        <div class="profile-header">
+          <div class="profile-avatar-section">
+            <div class="profile-avatar" id="profileAvatar">
+              <i class="bi bi-person-circle avatar-icon"></i>
+            </div>
+            <button class="edit-profile-btn" id="editProfileBtn">
+              <i class="bi bi-pencil"></i>
+              Edit Profile
+            </button>
+          </div>
+          <div class="profile-info">
+            <h1 class="profile-name" id="displayName">DanePascual</h1>
+            <p class="profile-email" id="displayEmail">
+              <i class="bi bi-envelope"></i>
+              <span class="email-text"
+                >danepascual@paterostechnologicalcollege.edu.ph</span
+              >
+            </p>
+            <p class="profile-bio" id="displayBio">
+              Information Technology student passionate about web development,
+              cybersecurity, and collaborative learning. Always eager to explore
+              new technologies and connect with fellow IT enthusiasts.
+            </p>
+            <div id="lastUpdated">Last updated: 2025-10-10 08:17:59 UTC</div>
+          </div>
+        </div>
+
+        <!-- Profile Sections -->
+        <div class="profile-sections">
+          <!-- Left Column -->
+          <div>
+            <!-- Personal Information -->
+            <div class="profile-section">
+              <h2 class="section-title">
+                <div class="section-icon">
+                  <i class="bi bi-person"></i>
+                </div>
+                Personal Information
+              </h2>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Full Name</div>
+                  <div class="info-value" id="infoName">DanePascual</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Student Number</div>
+                  <div class="info-value" id="infoStudentNumber">
+                    2025-00001
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Program</div>
+                  <div class="info-value" id="infoProgram">BSIT</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Year Level</div>
+                  <div class="info-value" id="infoYearLevel">3rd Year</div>
+                </div>
+                <div class="info-item full-width">
+                  <div class="info-label">Email Address</div>
+                  <div class="info-value email" id="infoEmail">
+                    danepascual@paterostechnologicalcollege.edu.ph
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top: 25px">
+                <div class="info-label">About Me</div>
+                <div class="bio-section" id="infoBio">
+                  Information Technology student passionate about web
+                  development, cybersecurity, and collaborative learning. Always
+                  eager to explore new technologies and connect with fellow IT
+                  enthusiasts.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div>
+            <!-- Academic Information - Moved to right column -->
+            <div class="profile-section">
+              <h2 class="section-title">
+                <div class="section-icon">
+                  <i class="bi bi-mortarboard"></i>
+                </div>
+                Academic Information
+              </h2>
+              <div class="info-grid">
+                <div class="info-item full-width">
+                  <div class="info-label">Institution</div>
+                  <div class="info-value" id="infoInstitution">
+                    Pateros Technological College
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Specialization</div>
+                  <div class="info-value" id="infoSpecialization">
+                    Web Development
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Expected Graduation</div>
+                  <div class="info-value" id="infoGraduation">2026</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /.profile-content -->
+    </div>
+    <!-- /.main-content -->
+
+    <!-- Edit Profile Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Profile</h3>
+          <button class="close-modal" id="closeEditModalBtn">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm">
+            <!-- Photo Upload Section -->
+            <div class="photo-upload-section">
+              <div class="current-photo" id="modalAvatar">
+                <i class="bi bi-person-circle avatar-icon"></i>
+              </div>
+              <div class="file-input-wrapper">
+                <input type="file" id="photoInput" accept="image/*" />
+                <i class="bi bi-camera"></i> Choose Photo
+              </div>
+              <div class="upload-hint">
+                Recommended: Square image, max 5MB (JPG, PNG, GIF)
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editName">Full Name</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editName"
+                value="DanePascual"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editEmail">Email Address</label>
+              <input
+                type="email"
+                class="form-input"
+                id="editEmail"
+                value="danepascual@paterostechnologicalcollege.edu.ph"
+                required
+              />
+              <div class="email-hint">
+                <i class="bi bi-info-circle"></i>
+                Email must be from Pateros Technological College domain
+                (@paterostechnologicalcollege.edu.ph)
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editStudentNumber"
+                >Student Number</label
+              >
+              <input
+                type="text"
+                class="form-input"
+                id="editStudentNumber"
+                value="2025-00001"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editProgram">Program</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editProgram"
+                value="BSIT"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editInstitution">Institution</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editInstitution"
+                value="Pateros Technological College"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editYearLevel">Year Level</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editYearLevel"
+                value="3rd Year"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editSpecialization">Specialization</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editSpecialization"
+                value="Web Development"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editGraduation">Expected Graduation</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editGraduation"
+                value="2026"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editBio">About Me</label>
+              <textarea
+                class="form-textarea"
+                id="editBio"
+                placeholder="Tell us about yourself..."
+              >
+Information Technology student passionate about web development, cybersecurity, and collaborative learning. Always eager to explore new technologies and connect with fellow IT enthusiasts.</textarea
+              >
+            </div>
+
+            <!-- Change Password controls (in-edit modal) -->
+            <div
+              style="
+                margin-top: 12px;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+              "
+            >
+              <button
+                type="button"
+                id="openChangePasswordBtn"
+                class="modal-btn"
+                style="
+                  background: #ff9800;
+                  color: #fff;
+                  border: none;
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                "
+              >
+                Change Password
+              </button>
+              <button
+                type="button"
+                id="sendResetEmailBtn"
+                class="modal-btn"
+                style="
+                  border: 1px solid var(--primary-color);
+                  background: #fff;
+                  color: var(--primary-color);
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                "
+              >
+                Send Password Reset Email
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="modal-btn modal-btn-cancel"
+            id="cancelEditModalBtn"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="modal-btn modal-btn-save"
+            id="saveProfileBtn"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Modal (separate) -->
+    <div id="changePasswordModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Change Password</h3>
+          <button class="close-modal" id="closeChangePasswordModal">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="changePasswordForm">
+            <div class="form-group">
+              <label class="form-label" for="currentPassword"
+                >Current Password</label
+              >
+              <input
+                type="password"
+                id="currentPassword"
+                class="form-input"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newPassword">New Password</label>
+              <input
+                type="password"
+                id="newPassword"
+                class="form-input"
+                required
+                minlength="8"
+              />
+              <div class="form-error" id="passwordHint" style="display: none">
+                Password should be at least 8 characters.
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="modal-btn modal-btn-cancel"
+                id="cancelChangePasswordBtn"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="modal-btn modal-btn-save"
+                id="confirmChangePasswordBtn"
+              >
+                Change Password
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase SDK (as a module) -->
+    <script type="module" src="../../config/firebase.js"></script>
+    <!-- Load centralized sidebar BEFORE page script so theme & sidebar are initialized -->
+    <script type="module" src="../scripts/sidebar.js"></script>
+    <!-- Bootstrap JS, etc -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Your profile logic -->
+    <script type="module" src="../scripts/profile.js"></script>
+  </body>
+</html>

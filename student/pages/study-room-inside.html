@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles/study-room-inside.css" />
+    <title id="pageTitle">Study Room - StudyGroup</title>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <i class="bi bi-book"></i>
+          StudyGroup
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <a href="dashboard.html" class="sidebar-item">
+          <i class="bi bi-house"></i>
+          Dashboard
+        </a>
+        <a href="profile.html" class="sidebar-item">
+          <i class="bi bi-person"></i>
+          Profile
+        </a>
+        <a href="study-rooms.html" class="sidebar-item active">
+          <i class="bi bi-door-open"></i>
+          Study Rooms
+        </a>
+        <a href="resources.html" class="sidebar-item">
+          <i class="bi bi-folder"></i>
+          Resources
+        </a>
+        <a href="discussion.html" class="sidebar-item">
+          <i class="bi bi-chat-dots"></i>
+          Discussion Forum
+        </a>
+        <a href="report.html" class="sidebar-item">
+          <i class="bi bi-flag"></i>
+          Report
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div
+          class="user-info"
+          style="cursor: pointer; transition: all 0.3s ease"
+        >
+          <div class="user-avatar" id="sidebarAvatar"></div>
+          <div>
+            <div style="font-weight: bold; font-size: 14px" id="sidebarName">
+              Loading...
+            </div>
+            <div style="font-size: 12px; opacity: 0.8" id="sidebarCourse">
+              Loading...
+            </div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-btn">
+          <i class="bi bi-box-arrow-right"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <!-- Top Navigation -->
+      <div class="top-nav">
+        <div class="nav-left">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="bi bi-list"></i>
+          </button>
+          <h1 class="page-title" id="roomTitleNav">
+            <i class="bi bi-hash"></i>
+            <span id="roomNameDisplay">Loading Room...</span>
+            <div class="live-indicator" title="Room is active"></div>
+          </h1>
+        </div>
+        <div class="nav-right">
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="bi bi-moon"></i>
+          </button>
+          <button
+            class="settings-btn"
+            id="settingsBtn"
+            title="Room settings"
+            style="display: block"
+          >
+            <i class="bi bi-gear"></i>
+          </button>
+          <a href="study-rooms.html" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-box-arrow-left"></i> Leave
+          </a>
+        </div>
+      </div>
+
+      <!-- Room Status Bar -->
+      <div class="room-status-bar">
+        <div class="room-info">
+          <div class="room-title">
+            <i class="bi bi-people-fill"></i>
+            <span id="roomTitleDisplay">Loading Room...</span>
+          </div>
+          <div class="room-meta">
+            <div class="room-badges">
+              <span class="badge bg-success">Active</span>
+              <span
+                class="badge bg-light text-dark"
+                id="createdByBadge"
+                style="display: none"
+              ></span>
+              <span class="badge bg-info text-white" id="sessionBadge"
+                >Session #1</span
+              >
+            </div>
+            <div class="room-subtitle" id="roomCreatedTime">
+              Created on 2025-10-12 03:15:37 UTC
+            </div>
+          </div>
+        </div>
+        <div class="room-actions">
+          <button
+            class="btn btn-outline-success room-action-btn"
+            id="inviteBtn"
+          >
+            <i class="bi bi-person-plus"></i> Invite
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Room Content -->
+      <div class="room-container">
+        <!-- Left Panel - Participants -->
+        <div class="left-panel">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <i class="bi bi-people-fill"></i> Participants
+              </div>
+              <span class="badge bg-success rounded-pill" id="participantCount"
+                >1</span
+              >
+            </div>
+            <div class="panel-body">
+              <div class="participants-list" id="participantsList">
+                <div class="participant-item" data-user="DanePascual">
+                  <div class="participant-avatar">
+                    DP
+                    <div class="status-indicator status-online"></div>
+                  </div>
+                  <div class="participant-info">
+                    <div class="participant-name">DanePascual (You)</div>
+                    <div class="participant-status">Host</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel - Main Chat Area -->
+        <div class="right-panel">
+          <div class="chat-container">
+            <div class="chat-header">
+              <div class="chat-title"><i class="bi bi-chat-dots"></i> Chat</div>
+              <div id="callIndicator" style="display: none">
+                <span class="badge bg-success"
+                  ><i class="bi bi-camera-video-fill"></i> In Call</span
+                >
+              </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+              <div class="empty-state">
+                <i class="bi bi-chat-dots empty-state-icon"></i>
+                <div>No messages yet</div>
+                <div>Start the conversation!</div>
+              </div>
+            </div>
+
+            <div class="chat-input">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                id="messageInput"
+              />
+              <div class="chat-actions">
+                <button
+                  class="chat-action-btn"
+                  id="attachBtn"
+                  title="Attach Image"
+                >
+                  <i class="bi bi-paperclip"></i>
+                </button>
+                <button class="chat-send" id="sendMessageBtn">
+                  <i class="bi bi-send-fill"></i>
+                </button>
+              </div>
+              <input
+                type="file"
+                class="file-input"
+                id="fileInput"
+                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+              />
+            </div>
+          </div>
+
+          <button
+            class="video-call-btn"
+            id="videoCallBtn"
+            title="Start Video Call"
+          >
+            <i class="bi bi-camera-video-fill"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Picture-in-Picture Video Container -->
+    <div class="video-container" id="videoContainer">
+      <div class="video-header" id="videoHeader">
+        <div class="video-title">
+          <i class="bi bi-camera-video"></i> Video Call
+          <span class="maximized-indicator">
+            <i class="bi bi-fullscreen"></i> Fullscreen
+          </span>
+        </div>
+        <div class="video-actions">
+          <button
+            class="video-action-btn"
+            id="minimizeBtn"
+            title="Minimize (Alt+Down)"
+          >
+            <i class="bi bi-dash-lg"></i>
+          </button>
+          <button
+            class="video-action-btn"
+            id="maximizeBtn"
+            title="Maximize (Alt+Up)"
+          >
+            <i class="bi bi-arrows-angle-expand"></i>
+          </button>
+          <button
+            class="video-action-btn"
+            id="closeVideoBtn"
+            title="Close (Alt+L)"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="video-body">
+        <div class="video-placeholder" id="videoPlaceholder">
+          <i class="bi bi-camera-video" style="font-size: 32px"></i>
+          <div>Click to start a video call</div>
+        </div>
+
+        <div class="video-grid" id="videoGrid" style="display: none">
+          <!-- Video participants will appear here -->
+        </div>
+      </div>
+
+      <div class="video-controls">
+        <button class="video-control active" id="micBtn" title="Mute (Alt+M)">
+          <i class="bi bi-mic-fill"></i>
+        </button>
+        <button
+          class="video-control active"
+          id="cameraBtn"
+          title="Camera (Alt+V)"
+        >
+          <i class="bi bi-camera-video-fill"></i>
+        </button>
+        <button
+          class="video-control"
+          id="screenShareBtn"
+          title="Share Screen (Alt+S)"
+        >
+          <i class="bi bi-display"></i>
+        </button>
+        <button
+          class="video-control danger"
+          id="leaveCallBtn"
+          title="End Call (Alt+L)"
+        >
+          <i class="bi bi-telephone-x-fill"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+      <!-- ... modal content ... -->
+    </div>
+    <div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
+      <!-- ... modal content ... -->
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyAn1-kQypHeeoqZRGYKhJfE5AiICkTX_Hw",
+        authDomain: "study-group-webapp-93fc2.firebaseapp.com",
+        projectId: "study-group-webapp-93fc2",
+        storageBucket: "study-group-webapp-93fc2.firebasestorage.app",
+        messagingSenderId: "857690286168",
+        appId: "1:857690286168:web:93e5f7bf374b62445a022d",
+        measurementId: "G-MR51J9BKM0",
+      };
+      if (!firebase.apps || !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        console.log("Firebase (compat) initialized");
+      }
+      window.firebaseAppInstance = firebase;
+    </script>
+
+    <!-- Global Config Setup -->
+    <script>
+      // Initialize global config object if not already set
+      window.__CONFIG__ = window.__CONFIG__ || {};
+
+      // REMOVED: The jitsiConfig lines are no longer needed and were causing conflicts.
+      // The backend now provides all necessary JaaS configuration.
+
+      // Set API base URL for development/testing
+      window.__CONFIG__.apiBaseUrl = "http://localhost:5000";
+      window.__CONFIG__.backendBase = "http://localhost:5000";
+
+      console.debug("Global config initialized:", {
+        apiBaseUrl: window.__CONFIG__.apiBaseUrl,
+        backendBase: window.__CONFIG__.backendBase,
+      });
+    </script>
+
+    <script type="module" src="../scripts/sidebar.js"></script>
+    <script type="module" src="../scripts/study-group-inside/index.js"></script>
+
+    <!-- Bridge script to expose functions for HTML -->
+    <script>
+      // This script can be simplified or removed if all interactions are handled via event listeners in modules.
+    </script>
+  </body>
+</html>

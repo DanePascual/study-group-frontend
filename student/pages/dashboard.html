@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles/dashboard.css" />
+    <title>Dashboard - Study Group</title>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <i class="bi bi-book"></i>
+          StudyGroup
+        </div>
+      </div>
+
+      <nav class="sidebar-menu" role="navigation">
+        <a
+          href="dashboard.html"
+          class="sidebar-item active"
+          aria-current="page"
+        >
+          <i class="bi bi-house"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="profile.html" class="sidebar-item" id="profileLink">
+          <i class="bi bi-person"></i>
+          <span>Profile</span>
+        </a>
+        <a href="study-rooms.html" class="sidebar-item">
+          <i class="bi bi-door-open"></i>
+          <span>Study Rooms</span>
+        </a>
+        <a href="resources.html" class="sidebar-item">
+          <i class="bi bi-folder"></i>
+          <span>Resources</span>
+        </a>
+        <a href="discussion.html" class="sidebar-item">
+          <i class="bi bi-chat-dots"></i>
+          <span>Discussion Forum</span>
+        </a>
+        <a href="report.html" class="sidebar-item">
+          <i class="bi bi-flag"></i>
+          <span>Report</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div
+          class="user-info"
+          style="cursor: pointer; transition: all 0.3s ease"
+        >
+          <div class="user-avatar" id="sidebarAvatar"></div>
+          <div>
+            <div style="font-weight: bold; font-size: 14px" id="sidebarName">
+              Loading...
+            </div>
+            <div style="font-size: 12px; opacity: 0.8" id="sidebarCourse">
+              Loading...
+            </div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-btn">
+          <i class="bi bi-box-arrow-right"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <div class="top-nav">
+        <div class="nav-left">
+          <button
+            class="menu-toggle"
+            id="menuToggle"
+            aria-label="Toggle sidebar"
+          >
+            <i class="bi bi-list"></i>
+          </button>
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+
+        <div class="nav-right">
+          <div class="search-bar">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search..."
+              aria-label="Search"
+            />
+            <i class="bi bi-search search-icon"></i>
+          </div>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            aria-label="Toggle theme"
+          >
+            <i class="bi bi-moon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-content">
+        <div class="content-row">
+          <div class="main-section">
+            <div class="study-rooms">
+              <h2 class="section-title">
+                <i class="bi bi-door-open"></i>
+                Active Study Rooms
+              </h2>
+              <div class="room-grid" id="roomGrid">
+                <!-- Room cards will be inserted here by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="side-section">
+            <div class="todo-section">
+              <div class="todo-header">
+                <h3 class="section-title">
+                  <i class="bi bi-check2-square"></i>
+                  Study Notes & Tasks
+                </h3>
+                <button class="add-todo-btn" onclick="openTodoModal()">
+                  <i class="bi bi-plus"></i> Add Task
+                </button>
+              </div>
+
+              <div id="todoList">
+                <!-- Todo items will be rendered here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Todo Modal -->
+    <div
+      id="todoModal"
+      class="todo-modal"
+      role="dialog"
+      aria-labelledby="modalTitle"
+      aria-hidden="true"
+    >
+      <div class="todo-modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">Add Study Task & Reminder</h3>
+          <button
+            class="close-modal"
+            onclick="closeTodoModal()"
+            aria-label="Close modal"
+          ></button>
+        </div>
+
+        <form id="todoForm">
+          <div class="form-group">
+            <label class="form-label" for="todoText">Task/Note</label>
+            <textarea
+              class="form-textarea"
+              id="todoText"
+              placeholder="Enter your study task or note..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="todoReminder"
+              >Reminder Date & Time (Optional)</label
+            >
+            <input type="datetime-local" class="form-input" id="todoReminder" />
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="modal-btn modal-btn-cancel"
+              onclick="closeTodoModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="modal-btn modal-btn-save">
+              Save Task
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Load bootstrap JS first (optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- IMPORTANT: load centralized sidebar BEFORE page script so sidebar is initialized first -->
+    <script type="module" src="../scripts/sidebar.js"></script>
+
+    <!-- Page script depends on sidebar being ready (theme toggle, keyboard shortcut) -->
+    <script type="module" src="../scripts/dashboard.js"></script>
+  </body>
+</html>
