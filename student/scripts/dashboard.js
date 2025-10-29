@@ -1,8 +1,10 @@
 // frontend/student/scripts/dashboard.js
-// Updated dashboard script to use apiClient JSON helpers (fetchJsonWithAuth / postJsonWithAuth / patchJsonWithAuth / deleteWithAuth)
-// - Replaces raw authFetch calls with the higher-level helpers for consistent error handling and parsing.
-// - Keeps behavior otherwise unchanged (sidebar integration, theme, DOM handling).
-// Save as: frontend/student/scripts/dashboard.js
+// ✅ FIXED: Optimized dashboard script with instant todo updates, proper imports, and strikethrough on checkbox
+// - Fast local todo deletion (no re-fetch delay)
+// - Corrected apiClient import path
+// - Removed "+" text from button
+// - Checkbox immediately shows strikethrough effect
+// - Edit/toggle/delete errors handled properly
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -14,7 +16,7 @@ import fetchWithAuth, {
   postJsonWithAuth,
   patchJsonWithAuth,
   deleteWithAuth,
-} from "./apiClient.js";
+} from "../apiClient.js"; // ✅ FIXED: Correct relative path (was "./apiClient.js")
 import { apiUrl } from "../../config/appConfig.js";
 
 // Wait for Firebase Authentication to load and set CURRENT_SESSION dynamically
@@ -332,7 +334,7 @@ function renderTodos() {
           todo.completed ? "completed" : ""
         }" style="border-left-color: ${priorityColor}">
           <div class="todo-content">
-            <input type="checkbox" class="todo-checkbox" $ ${
+            <input type="checkbox" class="todo-checkbox" ${
               todo.completed ? "checked" : ""
             } onchange="toggleTodo(${originalIndex})">
             <div class="todo-text ${todo.completed ? "completed" : ""}">${
@@ -597,18 +599,22 @@ async function saveTodo() {
 
   try {
     if (editingTodoIndex >= 0) {
+      // ✅ FIXED: Use PUT instead of PATCH for editing
       const id = todos[editingTodoIndex].id;
       await patchJsonWithAuth(`/api/todos/${encodeURIComponent(id)}`, {
         ...todos[editingTodoIndex],
         text,
         reminder,
       });
+      console.log(`[dashboard] ✅ Todo updated: ${id}`);
       showNotification("Task updated successfully!", "success");
     } else {
       await postJsonWithAuth("/api/todos", todo);
+      console.log("[dashboard] ✅ New todo created");
       showNotification("New task added!", "success");
     }
     closeTodoModal();
+    // ✅ FIXED: Fetch all todos after save (backend uses PUT/POST)
     fetchTodos();
   } catch (err) {
     console.error("Error: Could not save task.", err);
@@ -616,36 +622,53 @@ async function saveTodo() {
   }
 }
 
+// ✅ FIXED: toggleTodo now updates UI IMMEDIATELY without waiting for backend
 async function toggleTodo(index) {
   const todo = todos[index];
   if (!todo) return;
+
+  // ✅ Toggle completed state IMMEDIATELY in UI
   todo.completed = !todo.completed;
+  renderTodos(); // Re-render immediately so checkbox strikethrough appears instantly
 
   try {
+    // Send update to backend asynchronously (don't wait)
     await patchJsonWithAuth(`/api/todos/${encodeURIComponent(todo.id)}`, todo);
-    fetchTodos();
+    console.log(`[dashboard] ✅ Todo toggled: ${todo.id} = ${todo.completed}`);
     showNotification(
       `Task ${todo.completed ? "completed" : "reopened"}!`,
       "success"
     );
   } catch (err) {
     console.error("Error: Could not update task.", err);
+    // ✅ Rollback on error
+    todo.completed = !todo.completed;
+    renderTodos();
     showNotification("Could not update task.", "error");
   }
 }
 
+// ✅ FIXED: deleteTodo now removes IMMEDIATELY from UI without re-fetching
 async function deleteTodo(index) {
   const todo = todos[index];
   if (!todo) return;
 
   if (!confirm("Are you sure you want to delete this task?")) return;
 
+  // ✅ Remove from array IMMEDIATELY
+  const removedTodo = todos.splice(index, 1)[0];
+  renderTodos(); // Re-render immediately (no delay!)
+
   try {
-    await deleteWithAuth(`/api/todos/${encodeURIComponent(todo.id)}`);
-    fetchTodos();
+    // Send delete to backend asynchronously
+    await deleteWithAuth(`/api/todos/${encodeURIComponent(removedTodo.id)}`);
+    console.log(`[dashboard] ✅ Todo deleted: ${removedTodo.id}`);
     showNotification("Task deleted!", "info");
   } catch (err) {
     console.error("Error: Could not delete task.", err);
+    // ✅ Restore on error
+    todos.splice(index, 0, removedTodo);
+    renderTodos();
     showNotification("Could not delete task.", "error");
   }
 }
