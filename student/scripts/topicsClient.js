@@ -3,14 +3,11 @@
 // - Replaced manual token + fetch logic with apiClient helpers (fetchJsonWithAuth, postJsonWithAuth, fetchWithAuth, postFormWithAuth)
 // - Keeps server-first behavior with localStorage fallback used by discussion/topic pages.
 // - Exports: getTopics, postTopic, incrementView, getTopic, getTopicPosts, postReply, editPost, deletePostApi
+// ✅ FIXED: postTopic now normalizes response before returning
 
 import { API_BASE } from "../../config/appConfig.js";
 import { auth } from "../../config/firebase.js";
-import fetchWithAuth, {
-  fetchJsonWithAuth,
-  postJsonWithAuth,
-  postFormWithAuth,
-} from "./apiClient.js";
+import { fetchJsonWithAuth, postJsonWithAuth } from "./apiClient.js";
 
 // Safe JSON parse helper: returns null if no JSON body
 async function parseJsonSafe(res) {
@@ -39,7 +36,8 @@ export async function getTopics() {
   }
 }
 
-// POST /api/topics (create topic) — attaches ID token via postJsonWithAuth
+// ✅ FIXED: POST /api/topics (create topic) — attaches ID token via postJsonWithAuth
+// Now normalizes response before returning
 export async function postTopic(
   title,
   content,
@@ -49,11 +47,40 @@ export async function postTopic(
   if (!title || !title.trim()) throw new Error("Title is required");
   try {
     // postJsonWithAuth will use authFetch internally
-    return await postJsonWithAuth(`${API_BASE}/api/topics`, {
+    const response = await postJsonWithAuth(`${API_BASE}/api/topics`, {
       title: title.trim(),
       content,
       metadata,
     });
+
+    // ✅ FIXED: Normalize the response before returning
+    const topicData = response.topic || response;
+    const normalized = {
+      id: topicData.id,
+      title: topicData.title || "",
+      description: topicData.content || topicData.description || "",
+      category:
+        (topicData.metadata && topicData.metadata.category) ||
+        topicData.category ||
+        "discussion",
+      tags:
+        (topicData.metadata && topicData.metadata.tags) || topicData.tags || [],
+      author: topicData.author || "system",
+      authorId: topicData.author_id || topicData.authorId || null,
+      userId: topicData.author_id || topicData.userId || null,
+      created: topicData.created || new Date().toISOString(),
+      updated: topicData.updated || null,
+      postCount: topicData.post_count || topicData.postCount || 0,
+      viewCount:
+        topicData.views || topicData.viewCount || topicData.view_count || 0,
+      pinned: !!topicData.pinned,
+      latestActivity:
+        topicData.latestActivity ||
+        topicData.created ||
+        new Date().toISOString(),
+    };
+
+    return normalized;
   } catch (err) {
     throw new Error(
       "POST /api/topics failed: " + (err && err.message ? err.message : "")

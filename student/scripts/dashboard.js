@@ -6,6 +6,7 @@
 // - Checkbox immediately shows strikethrough effect
 // - Edit/toggle/delete errors handled properly
 // - ✅ FIXED: Changed PATCH to PUT for todo updates
+// - ✅ FIXED: Reminder date/time now saves correctly - converts empty strings to null, updates local array
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -579,44 +580,59 @@ async function fetchTodos() {
   }
 }
 
+// ✅ FIXED: saveTodo - Reminder date/time now saves correctly
 async function saveTodo() {
   const textEl = document.getElementById("todoText");
   const reminderEl = document.getElementById("todoReminder");
   const text = textEl ? textEl.value.trim() : "";
-  const reminder = reminderEl ? reminderEl.value : "";
+  const reminder = reminderEl ? reminderEl.value : ""; // ✅ Gets datetime-local value
 
   if (!text) {
     showNotification("Please enter a task description!", "error");
     return;
   }
 
+  // ✅ FIXED: Convert empty string reminder to null
   const todo = {
     text,
     completed: false,
-    reminder,
+    reminder: reminder || null, // ✅ CHANGED: Empty string becomes null
     created: new Date().toISOString(),
     priority: "medium",
   };
 
   try {
     if (editingTodoIndex >= 0) {
-      // ✅ FIXED: Use PUT instead of PATCH for editing
+      // ✅ FIXED: Edit existing todo
       const id = todos[editingTodoIndex].id;
-      await putJsonWithAuth(`/api/todos/${encodeURIComponent(id)}`, {
+      const updatedTodo = {
         ...todos[editingTodoIndex],
         text,
-        reminder,
-      });
+        reminder: reminder || null, // ✅ CHANGED: Empty string becomes null
+      };
+
+      await putJsonWithAuth(
+        `/api/todos/${encodeURIComponent(id)}`,
+        updatedTodo
+      );
+
+      // ✅ NEW: Update local todos array with the updated values
+      todos[editingTodoIndex] = updatedTodo;
+
       console.log(`[dashboard] ✅ Todo updated: ${id}`);
       showNotification("Task updated successfully!", "success");
     } else {
-      await postJsonWithAuth("/api/todos", todo);
+      // ✅ FIXED: Create new todo
+      const response = await postJsonWithAuth("/api/todos", todo);
+
+      // ✅ NEW: Add the newly created todo to the array
+      todos.push(response);
+
       console.log("[dashboard] ✅ New todo created");
       showNotification("New task added!", "success");
     }
     closeTodoModal();
-    // ✅ FIXED: Fetch all todos after save (backend uses PUT/POST)
-    fetchTodos();
+    renderTodos(); // ✅ Re-render to show changes immediately
   } catch (err) {
     console.error("Error: Could not save task.", err);
     showNotification("Could not save task.", "error");
