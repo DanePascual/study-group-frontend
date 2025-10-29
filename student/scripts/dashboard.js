@@ -16,7 +16,7 @@ import fetchWithAuth, {
   postJsonWithAuth,
   patchJsonWithAuth,
   deleteWithAuth,
-} from "../apiClient.js"; // ✅ FIXED: Correct relative path (was "./apiClient.js")
+} from "./apiClient.js"; // ✅ FIXED: Same directory
 import { apiUrl } from "../../config/appConfig.js";
 
 // Wait for Firebase Authentication to load and set CURRENT_SESSION dynamically
