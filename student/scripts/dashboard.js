@@ -5,6 +5,7 @@
 // - Removed "+" text from button
 // - Checkbox immediately shows strikethrough effect
 // - Edit/toggle/delete errors handled properly
+// - ✅ FIXED: Changed PATCH to PUT for todo updates
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -14,7 +15,7 @@ import {
 import fetchWithAuth, {
   fetchJsonWithAuth,
   postJsonWithAuth,
-  patchJsonWithAuth,
+  putJsonWithAuth, // ✅ FIXED: Changed from patchJsonWithAuth
   deleteWithAuth,
 } from "./apiClient.js"; // ✅ FIXED: Same directory
 import { apiUrl } from "../../config/appConfig.js";
@@ -601,7 +602,7 @@ async function saveTodo() {
     if (editingTodoIndex >= 0) {
       // ✅ FIXED: Use PUT instead of PATCH for editing
       const id = todos[editingTodoIndex].id;
-      await patchJsonWithAuth(`/api/todos/${encodeURIComponent(id)}`, {
+      await putJsonWithAuth(`/api/todos/${encodeURIComponent(id)}`, {
         ...todos[editingTodoIndex],
         text,
         reminder,
@@ -633,7 +634,7 @@ async function toggleTodo(index) {
 
   try {
     // Send update to backend asynchronously (don't wait)
-    await patchJsonWithAuth(`/api/todos/${encodeURIComponent(todo.id)}`, todo);
+    await putJsonWithAuth(`/api/todos/${encodeURIComponent(todo.id)}`, todo); // ✅ FIXED: Changed from patchJsonWithAuth
     console.log(`[dashboard] ✅ Todo toggled: ${todo.id} = ${todo.completed}`);
     showNotification(
       `Task ${todo.completed ? "completed" : "reopened"}!`,
