@@ -6,6 +6,8 @@
 // ✅ FIXED: Edit/Delete now searches arrays first (discussion.js pattern)
 // ✅ FIXED: Post title removed - only content required
 // ✅ FIXED: Image upload removed - use JSON only
+// ✅ FIXED: Comments fetched from API (not localStorage) with avatars from DB
+// ✅ FIXED: Footer avatar always shows current user's profile picture
 
 import { auth, db } from "../../config/firebase.js";
 import {
@@ -19,6 +21,8 @@ import {
   incrementView as apiIncrementView,
   editPost as apiEditPost,
   deletePostApi,
+  getTopicComments as apiGetTopicComments,
+  postComment as apiPostComment,
 } from "./topicsClient.js";
 import { postJsonWithAuth } from "./apiClient.js";
 import { apiUrl } from "../../config/appConfig.js";
@@ -242,18 +246,37 @@ function initializeTopicPage() {
     }
   }
 
+  // ✅ FIXED: Get comments from API instead of localStorage
   async function getComments(topicId, postId) {
     if (!topicId || !postId) return [];
     try {
-      const key = "comments_" + topicId + "_" + postId;
-      const comments = JSON.parse(localStorage.getItem(key) || "[]");
       console.log(
-        `[getComments] ✅ Loaded ${comments.length} comments for post ${postId}`
+        `[getComments] Fetching comments from API for post ${postId}`
+      );
+      const resp = await apiGetTopicComments(topicId, postId, {
+        limit: 100,
+        sort: "newest",
+      });
+
+      const comments = resp.comments || [];
+      console.log(
+        `[getComments] ✅ Loaded ${comments.length} comments from API with avatars`
       );
       return comments;
     } catch (err) {
-      console.warn("[getComments] Error:", err);
-      return [];
+      console.warn("[getComments] API fetch failed:", err);
+      // Fallback: try localStorage (for backward compatibility)
+      try {
+        const key = "comments_" + topicId + "_" + postId;
+        const comments = JSON.parse(localStorage.getItem(key) || "[]");
+        console.log(
+          `[getComments] ⚠️ Using localStorage fallback: ${comments.length} comments`
+        );
+        return comments;
+      } catch (localErr) {
+        console.warn("[getComments] Fallback error:", localErr);
+        return [];
+      }
     }
   }
 
@@ -450,22 +473,38 @@ function initializeTopicPage() {
         '<div style="text-align: center; padding: 20px;"><div class="loader"><div class="loader-spinner"></div></div></div>';
 
       const comments = await getComments(window.currentTopicId, postId);
-      renderComments(comments, post.author_avatar);
+      renderComments(comments);
 
       document.getElementById("commentModalBackdrop").classList.add("active");
 
+      // ✅ FIXED: Always show current user's avatar in footer (not post author's)
       const currentUserAvatar = document.getElementById(
         "commentModalCurrentUserAvatar"
       );
-      if (
-        post.author_avatar &&
-        String(post.authorId) === String(CURRENT_USER_ID)
-      ) {
-        currentUserAvatar.style.backgroundImage = `url('${post.author_avatar}')`;
+
+      // Try to load current user's profile picture
+      let currentUserPhoto = null;
+      try {
+        const currentUserDoc = await getDoc(doc(db, "users", CURRENT_USER_ID));
+        if (currentUserDoc.exists()) {
+          currentUserPhoto = currentUserDoc.data()?.photo || null;
+        }
+      } catch (e) {
+        console.warn("Could not fetch current user photo:", e);
+      }
+
+      // Display current user's avatar
+      if (currentUserPhoto) {
+        console.log(
+          "[openCommentModal] ✅ Using current user photo:",
+          currentUserPhoto
+        );
+        currentUserAvatar.style.backgroundImage = `url('${currentUserPhoto}')`;
         currentUserAvatar.style.backgroundSize = "cover";
         currentUserAvatar.style.backgroundPosition = "center";
         currentUserAvatar.textContent = "";
       } else {
+        console.log("[openCommentModal] Using current user initials");
         currentUserAvatar.style.backgroundImage = "none";
         currentUserAvatar.textContent =
           CURRENT_SESSION.userAvatar.toUpperCase();
@@ -480,8 +519,8 @@ function initializeTopicPage() {
     }
   };
 
-  // ✅ RENDER COMMENTS
-  function renderComments(comments, postAuthorAvatar = null) {
+  // ✅ FIXED: RENDER COMMENTS - Now displays avatars from DB
+  function renderComments(comments) {
     const commentsList = document.getElementById("commentModalCommentsList");
     const commentCount = document.getElementById("commentModalCommentCount");
 
@@ -497,12 +536,10 @@ function initializeTopicPage() {
       .map((comment) => {
         const initials = getInitials(comment.author);
 
+        // ✅ FIXED: Use author_avatar from comment (from DB)
         let avatarHtml;
-        if (
-          postAuthorAvatar &&
-          comment.author === window.currentCommentingPost?.author
-        ) {
-          avatarHtml = `<div class="comment-avatar" style="background-image: url('${postAuthorAvatar}'); background-size: cover; background-position: center;"></div>`;
+        if (comment.author_avatar) {
+          avatarHtml = `<div class="comment-avatar" style="background-image: url('${comment.author_avatar}'); background-size: cover; background-position: center;"></div>`;
         } else {
           avatarHtml = `<div class="comment-avatar">${initials}</div>`;
         }
@@ -515,10 +552,10 @@ function initializeTopicPage() {
               comment.author
             )}</div>
             <div class="comment-text" style="font-size: 13px; margin: 5px 0;">${escapeHtml(
-              comment.text
+              comment.text || comment.content
             )}</div>
             <div style="font-size: 12px; color: #888;">${formatRelativeTime(
-              comment.created
+              comment.created || comment.created_at
             )}</div>
           </div>
         </div>
@@ -557,7 +594,7 @@ function initializeTopicPage() {
     }
   };
 
-  // Add comment
+  // ✅ FIXED: Add comment - Now uses API instead of localStorage
   const commentBtn = document.getElementById("commentModalCommentBtn");
   commentBtn.addEventListener("click", async function () {
     const commentInput = document.getElementById("commentModalCommentInput");
@@ -576,21 +613,18 @@ function initializeTopicPage() {
     try {
       const postId = window.currentCommentingPostId;
 
-      const comment = {
-        id: Date.now().toString(),
-        author: CURRENT_SESSION.user,
-        text: commentText,
-        created: new Date().toISOString(),
-        likes: 0,
-      };
+      console.log("[addComment] Posting comment via API");
 
-      const commentsKey = "comments_" + window.currentTopicId + "_" + postId;
-      const existingComments = JSON.parse(
-        localStorage.getItem(commentsKey) || "[]"
+      // ✅ Use API to post comment
+      const resp = await apiPostComment(
+        window.currentTopicId,
+        postId,
+        commentText
       );
-      existingComments.push(comment);
-      localStorage.setItem(commentsKey, JSON.stringify(existingComments));
 
+      console.log("[addComment] ✅ Comment posted:", resp);
+
+      // ✅ Increment post comment count
       const post =
         window.allTopicPosts.find((p) => String(p.id) === String(postId)) ||
         window.myTopicPosts.find((p) => String(p.id) === String(postId));
@@ -598,11 +632,11 @@ function initializeTopicPage() {
         post.comments = (post.comments || 0) + 1;
       }
 
-      renderComments(
-        existingComments,
-        window.currentCommentingPost?.author_avatar
-      );
+      // ✅ Clear input and reload comments from API
       commentInput.value = "";
+      const comments = await getComments(window.currentTopicId, postId);
+      renderComments(comments);
+
       showNotification("Comment added successfully");
 
       setTimeout(() => {

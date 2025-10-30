@@ -3,12 +3,13 @@
 // ✅ FIXED: Response validation for likes field
 // ✅ FIXED: Normalize posts to ensure likes field exists
 // ✅ FIXED: Error handling for malformed responses
+// ✅ ADDED: Get comments from API instead of localStorage
 
 import { API_BASE } from "../../config/appConfig.js";
 import { auth } from "../../config/firebase.js";
 import { fetchJsonWithAuth, postJsonWithAuth } from "./apiClient.js";
 
-// Safe JSON parse helper: returns null if no JSON body
+// Safe JSON parse helper: returns null for no JSON body
 async function parseJsonSafe(res) {
   if (!res) return null;
   const ct =
@@ -160,12 +161,12 @@ export async function getTopicPosts(topicId) {
           authorId: p.author_id || p.authorId || null,
           created_at: p.created_at || p.created || new Date().toISOString(),
           created: p.created_at || p.created || new Date().toISOString(),
-          likes: typeof p.likes === "number" ? p.likes : 0, // ✅ ENSURE likes is number
+          likes: typeof p.likes === "number" ? p.likes : 0,
           comments: p.comments || 0,
           author_avatar: p.author_avatar || null,
         };
       })
-      .filter((p) => p !== null); // ✅ Remove malformed entries
+      .filter((p) => p !== null);
 
     console.log(
       `[getTopicPosts] ✅ Normalized ${normalized.length} posts with likes field`
@@ -237,6 +238,95 @@ export async function deletePostApi(topicId, postId) {
   }
 }
 
+// ✅ ADDED: GET /api/topics/:topicId/posts/:postId/comments - Fetch from API
+export async function getTopicComments(topicId, postId, options = {}) {
+  if (!topicId || !postId) throw new Error("topicId and postId required");
+  try {
+    const limit = options.limit || 20;
+    const sort = options.sort || "newest";
+    const cursor = options.cursor || null;
+
+    let url = `${API_BASE}/api/topics/${encodeURIComponent(
+      topicId
+    )}/posts/${encodeURIComponent(
+      postId
+    )}/comments?limit=${limit}&sort=${sort}`;
+
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    const resp = await fetchJsonWithAuth(url, { method: "GET" });
+
+    // ✅ Extract and normalize comments
+    let comments = Array.isArray(resp) ? resp : resp.comments || resp;
+
+    if (!Array.isArray(comments)) {
+      console.warn(
+        "[getTopicComments] Response is not an array, wrapping:",
+        resp
+      );
+      comments = resp && typeof resp === "object" ? [resp] : [];
+    }
+
+    // ✅ Normalize each comment with avatar
+    const normalized = (comments || [])
+      .map((c) => {
+        if (!c || typeof c !== "object") {
+          console.warn("[getTopicComments] Skipping malformed comment:", c);
+          return null;
+        }
+        return {
+          id: c.id,
+          author: c.author_name || "Anonymous",
+          author_id: c.author_id || null,
+          author_avatar: c.author_avatar || null, // ✅ KEY: Avatar from DB
+          text: c.content || "",
+          content: c.content || "",
+          created: c.created_at || new Date().toISOString(),
+          created_at: c.created_at || new Date().toISOString(),
+          edited_at: c.edited_at || null,
+          is_deleted: c.is_deleted || false,
+          likes_count: c.likes_count || 0,
+        };
+      })
+      .filter((c) => c !== null);
+
+    console.log(
+      `[getTopicComments] ✅ Loaded ${normalized.length} comments with avatars`
+    );
+
+    return {
+      comments: normalized,
+      nextCursor: resp.nextCursor || null,
+    };
+  } catch (err) {
+    throw new Error(
+      "GET /api/topics/:id/posts/:postId/comments failed: " +
+        (err && err.message ? err.message : "")
+    );
+  }
+}
+
+// ✅ POST /api/topics/:topicId/posts/:postId/comments - Create comment
+export async function postComment(topicId, postId, content) {
+  if (!topicId || !postId) throw new Error("topicId and postId required");
+  if (!content || !content.trim()) throw new Error("Comment content required");
+
+  try {
+    return await postJsonWithAuth(
+      `${API_BASE}/api/topics/${encodeURIComponent(
+        topicId
+      )}/posts/${encodeURIComponent(postId)}/comments`,
+      { content: content.trim() }
+    );
+  } catch (err) {
+    throw new Error(
+      "POST comment failed: " + (err && err.message ? err.message : "")
+    );
+  }
+}
+
 // ✅ GET /api/posts/:postId/likes - Get like count with validation
 export async function getPostLikes(postId) {
   if (!postId) throw new Error("postId required");
@@ -246,7 +336,6 @@ export async function getPostLikes(postId) {
       { method: "GET" }
     );
 
-    // ✅ Validate response has required fields
     return {
       likes: typeof resp.likes === "number" ? resp.likes : 0,
       userLiked: resp.userLiked === true,
@@ -256,7 +345,6 @@ export async function getPostLikes(postId) {
     console.warn(
       "getPostLikes failed: " + (err && err.message ? err.message : "")
     );
-    // ✅ Return safe default on error
     return { likes: 0, userLiked: false, post_id: postId };
   }
 }
@@ -270,7 +358,6 @@ export async function togglePostLike(postId) {
       {}
     );
 
-    // ✅ Validate response has required fields
     if (!resp || typeof resp !== "object") {
       throw new Error("Invalid response from server");
     }
