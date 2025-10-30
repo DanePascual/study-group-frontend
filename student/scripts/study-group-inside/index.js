@@ -1,5 +1,4 @@
 // Entry module - wires everything together
-// ✅ FIXED: Add clickable usernames functionality
 import { CONFIG } from "./config.js";
 import { db, auth } from "./firebase-init.js";
 import { UserAuth } from "./user-auth.js";
@@ -17,18 +16,6 @@ window.__CONFIG__ = {
 
 // module level instances
 let userModule, roomModule, chatModule, videoModule, uiModule;
-
-// ✅ NEW: Navigate to user profile page
-window.viewUserProfile = function (uid) {
-  if (!uid) {
-    console.warn("[index.js] No UID provided to viewUserProfile");
-    return;
-  }
-  console.log(`[index.js] Navigating to profile of user: ${uid}`);
-  window.location.href = `/frontend/student/pages/profile.html?uid=${encodeURIComponent(
-    uid
-  )}`;
-};
 
 async function initializeApp() {
   try {

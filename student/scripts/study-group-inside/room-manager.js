@@ -1,7 +1,5 @@
 // RoomManager class (ES module) — FIXED: Auto-join + proper participant loading + RACE CONDITION FIX
 // ✅ CRITICAL: Synchronous map instead of Promise.all to prevent re-render conflicts
-// ✅ FIXED: Make participant names and avatars clickable to view profile
-
 import { db } from "./firebase-init.js";
 import { fetchJsonWithAuth, postJsonWithAuth } from "../apiClient.js";
 
@@ -252,20 +250,13 @@ export class RoomManager {
         const isCurrent = p.id === this.userAuth.currentUser.uid;
         const canKick = this.isOwner && !isCurrent;
 
-        // ✅ NEW: Make avatar clickable
         const avatarHtml = p.photo
           ? `<div class="participant-avatar" style="background-image: url('${
               p.photo
-            }'); background-size: cover; background-position: center; cursor: pointer;" onclick="window.viewUserProfile('${
-              p.id
-            }')" title="View ${
-              p.name
-            }'s profile"><div class="status-indicator ${
+            }'); background-size: cover; background-position: center;"><div class="status-indicator ${
               p.inCall ? "status-in-call" : "status-online"
             }"></div></div>`
-          : `<div class="participant-avatar" style="cursor: pointer;" onclick="window.viewUserProfile('${
-              p.id
-            }')" title="View ${p.name}'s profile">${
+          : `<div class="participant-avatar">${
               p.avatar
             }<div class="status-indicator ${
               p.inCall ? "status-in-call" : "status-online"
@@ -273,11 +264,9 @@ export class RoomManager {
 
         return `<div class="participant-item" data-user-id="${
           p.id
-        }">${avatarHtml}<div class="participant-info"><div class="participant-name" style="cursor: pointer; color: var(--primary-color);" onclick="window.viewUserProfile('${
-          p.id
-        }')" title="View profile">${p.name}${
-          isCurrent ? " (You)" : ""
-        }</div><div class="participant-status">${
+        }">${avatarHtml}<div class="participant-info"><div class="participant-name">${
+          p.name
+        }${isCurrent ? " (You)" : ""}</div><div class="participant-status">${
           p.isHost ? "Host" : p.inCall ? "In Call" : "Online"
         }</div></div>${
           canKick
