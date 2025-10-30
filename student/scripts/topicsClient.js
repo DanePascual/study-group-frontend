@@ -1,9 +1,8 @@
 // frontend/student/scripts/topicsClient.js
 // Topics client (ES module) that uses centralized apiClient helpers for authenticated requests.
-// - Replaced manual token + fetch logic with apiClient helpers (fetchJsonWithAuth, postJsonWithAuth, fetchWithAuth, postFormWithAuth)
-// - Keeps server-first behavior with localStorage fallback used by discussion/topic pages.
-// - Exports: getTopics, postTopic, incrementView, getTopic, getTopicPosts, postReply, editPost, deletePostApi
-// ✅ FIXED: postTopic now normalizes response before returning
+// ✅ FIXED: Response validation for likes field
+// ✅ FIXED: Normalize posts to ensure likes field exists
+// ✅ FIXED: Error handling for malformed responses
 
 import { API_BASE } from "../../config/appConfig.js";
 import { auth } from "../../config/firebase.js";
@@ -24,20 +23,16 @@ async function parseJsonSafe(res) {
 
 // GET /api/topics
 export async function getTopics() {
-  // Use fetchJsonWithAuth to get unified behaviour (attaches token when available, safe timeouts/retries).
-  // This still works for public endpoints because fetchWithAuth tolerates missing token.
   try {
     return await fetchJsonWithAuth(`${API_BASE}/api/topics`, { method: "GET" });
   } catch (err) {
-    // Provide same error shape as previous implementation
     throw new Error(
       "Failed to load topics: " + (err && err.message ? err.message : err)
     );
   }
 }
 
-// ✅ FIXED: POST /api/topics (create topic) — attaches ID token via postJsonWithAuth
-// Now normalizes response before returning
+// ✅ FIXED: POST /api/topics (create topic) — with normalization
 export async function postTopic(
   title,
   content,
@@ -46,14 +41,13 @@ export async function postTopic(
 ) {
   if (!title || !title.trim()) throw new Error("Title is required");
   try {
-    // postJsonWithAuth will use authFetch internally
     const response = await postJsonWithAuth(`${API_BASE}/api/topics`, {
       title: title.trim(),
       content,
       metadata,
     });
 
-    // ✅ FIXED: Normalize the response before returning
+    // ✅ Normalize the response before returning
     const topicData = response.topic || response;
     const normalized = {
       id: topicData.id,
@@ -97,10 +91,8 @@ export async function incrementView(
   const url = `${API_BASE}/api/topics/${encodeURIComponent(topicId)}/view`;
   try {
     if (authRequired) {
-      // use fetchJsonWithAuth to attach token
       return await fetchJsonWithAuth(url, { method: "POST" });
     } else {
-      // best-effort unauthenticated increment (public endpoint)
       const res = await fetch(url, {
         method: "POST",
         credentials: "same-origin",
@@ -124,9 +116,7 @@ export async function getTopic(id) {
   try {
     return await fetchJsonWithAuth(
       `${API_BASE}/api/topics/${encodeURIComponent(id)}`,
-      {
-        method: "GET",
-      }
+      { method: "GET" }
     );
   } catch (err) {
     throw new Error(
@@ -135,14 +125,53 @@ export async function getTopic(id) {
   }
 }
 
-// GET /api/topics/:id/posts
+// ✅ FIXED: GET /api/topics/:id/posts - Normalize posts with likes field
 export async function getTopicPosts(topicId) {
   if (!topicId) throw new Error("topicId required");
   try {
-    return await fetchJsonWithAuth(
+    const resp = await fetchJsonWithAuth(
       `${API_BASE}/api/topics/${encodeURIComponent(topicId)}/posts`,
       { method: "GET" }
     );
+
+    // ✅ CRITICAL: Extract posts array
+    let posts = Array.isArray(resp) ? resp : resp.posts || resp;
+
+    // ✅ CRITICAL: Validate posts is an array
+    if (!Array.isArray(posts)) {
+      console.warn("[getTopicPosts] Response is not an array, wrapping:", resp);
+      posts = resp && typeof resp === "object" ? [resp] : [];
+    }
+
+    // ✅ CRITICAL: Normalize each post to ensure likes field exists
+    const normalized = (posts || [])
+      .map((p) => {
+        if (!p || typeof p !== "object") {
+          console.warn("[getTopicPosts] Skipping malformed post:", p);
+          return null;
+        }
+        return {
+          id: p.id,
+          title: p.title || "",
+          content: p.content || "",
+          author: p.author || "Anonymous",
+          author_id: p.author_id || p.authorId || null,
+          userId: p.userId || p.author_id || null,
+          authorId: p.author_id || p.authorId || null,
+          created_at: p.created_at || p.created || new Date().toISOString(),
+          created: p.created_at || p.created || new Date().toISOString(),
+          likes: typeof p.likes === "number" ? p.likes : 0, // ✅ ENSURE likes is number
+          comments: p.comments || 0,
+          author_avatar: p.author_avatar || null,
+        };
+      })
+      .filter((p) => p !== null); // ✅ Remove malformed entries
+
+    console.log(
+      `[getTopicPosts] ✅ Normalized ${normalized.length} posts with likes field`
+    );
+
+    return normalized;
   } catch (err) {
     throw new Error(
       "GET /api/topics/:id/posts failed: " +
@@ -159,7 +188,6 @@ export async function postReply(
 ) {
   if (!topicId) throw new Error("topicId required");
   try {
-    // Use postJsonWithAuth which centralizes token handling and error parsing
     return await postJsonWithAuth(
       `${API_BASE}/api/topics/${encodeURIComponent(topicId)}/posts`,
       payload
@@ -172,14 +200,13 @@ export async function postReply(
   }
 }
 
-// PUT /api/topics/:id/posts/:postId (edit post) — protected, server must enforce ownership/roles
+// PUT /api/topics/:id/posts/:postId (edit post) — protected
 export async function editPost(topicId, postId, payload) {
   if (!topicId || !postId) throw new Error("topicId and postId required");
   const url = `${API_BASE}/api/topics/${encodeURIComponent(
     topicId
   )}/posts/${encodeURIComponent(postId)}`;
   try {
-    // fetchJsonWithAuth throws on non-2xx and returns parsed JSON on success
     return await fetchJsonWithAuth(url, {
       method: "PUT",
       body: JSON.stringify(payload),
@@ -193,19 +220,69 @@ export async function editPost(topicId, postId, payload) {
   }
 }
 
-// DELETE /api/topics/:id/posts/:postId (delete post) — protected, server must enforce ownership/roles
+// DELETE /api/topics/:id/posts/:postId (delete post) — protected
 export async function deletePostApi(topicId, postId) {
   if (!topicId || !postId) throw new Error("topicId and postId required");
   const url = `${API_BASE}/api/topics/${encodeURIComponent(
     topicId
   )}/posts/${encodeURIComponent(postId)}`;
   try {
-    // Use fetchJsonWithAuth for consistent auth/timeout/retry/error-parsing behaviour
-    const parsed = await fetchJsonWithAuth(url, { method: "DELETE" });
-    return parsed;
+    return await fetchJsonWithAuth(url, { method: "DELETE" });
   } catch (err) {
     const e = new Error(
       "Delete post failed: " + (err && err.message ? err.message : "")
+    );
+    if (err && err.status) e.status = err.status;
+    throw e;
+  }
+}
+
+// ✅ GET /api/posts/:postId/likes - Get like count with validation
+export async function getPostLikes(postId) {
+  if (!postId) throw new Error("postId required");
+  try {
+    const resp = await fetchJsonWithAuth(
+      `${API_BASE}/api/posts/${encodeURIComponent(postId)}/likes`,
+      { method: "GET" }
+    );
+
+    // ✅ Validate response has required fields
+    return {
+      likes: typeof resp.likes === "number" ? resp.likes : 0,
+      userLiked: resp.userLiked === true,
+      post_id: resp.post_id || postId,
+    };
+  } catch (err) {
+    console.warn(
+      "getPostLikes failed: " + (err && err.message ? err.message : "")
+    );
+    // ✅ Return safe default on error
+    return { likes: 0, userLiked: false, post_id: postId };
+  }
+}
+
+// ✅ POST /api/posts/:postId/like - Toggle like with response validation
+export async function togglePostLike(postId) {
+  if (!postId) throw new Error("postId required");
+  try {
+    const resp = await postJsonWithAuth(
+      `${API_BASE}/api/posts/${encodeURIComponent(postId)}/like`,
+      {}
+    );
+
+    // ✅ Validate response has required fields
+    if (!resp || typeof resp !== "object") {
+      throw new Error("Invalid response from server");
+    }
+
+    return {
+      liked: resp.liked === true,
+      likes: typeof resp.likes === "number" ? resp.likes : 0,
+      post_id: resp.post_id || postId,
+    };
+  } catch (err) {
+    const e = new Error(
+      "Toggle like failed: " + (err && err.message ? err.message : "")
     );
     if (err && err.status) e.status = err.status;
     throw e;
