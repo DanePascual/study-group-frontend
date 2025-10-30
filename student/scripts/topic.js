@@ -8,6 +8,9 @@
 // ✅ FIXED: Image upload removed - use JSON only
 // ✅ FIXED: Comments fetched from API (not localStorage) with avatars from DB
 // ✅ FIXED: Footer avatar always shows current user's profile picture
+// ✅ FIXED: Make post author names clickable to view profile
+// ✅ FIXED: Make comment author names clickable to view profile
+// ✅ FIXED: Use author_id (snake_case) from comment API response
 
 import { auth, db } from "../../config/firebase.js";
 import {
@@ -26,6 +29,18 @@ import {
 } from "./topicsClient.js";
 import { postJsonWithAuth } from "./apiClient.js";
 import { apiUrl } from "../../config/appConfig.js";
+
+// ✅ NEW: Global function to navigate to user profile
+window.viewUserProfile = function (uid) {
+  if (!uid) {
+    console.warn("[topic.js] No UID provided to viewUserProfile");
+    return;
+  }
+  console.log(`[topic.js] Navigating to profile of user: ${uid}`);
+  window.location.href = `/frontend/student/pages/profile.html?uid=${encodeURIComponent(
+    uid
+  )}`;
+};
 
 // Utilities
 function delay(ms) {
@@ -380,7 +395,7 @@ function initializeTopicPage() {
 
   window.renderMyPostsFunction = renderMyPosts;
 
-  // ✅ BUILD POST CARD
+  // ✅ BUILD POST CARD - FIXED: Make author name clickable
   function buildPostCard(post) {
     const initials = getInitials(post.author);
     const avatarHtml = post.author_avatar
@@ -394,7 +409,11 @@ function initializeTopicPage() {
             <div class="post-title-container">
               <div class="post-author">
                 ${avatarHtml}
-                <span>${escapeHtml(post.author || "Anonymous")}</span>
+                <span style="cursor: pointer; color: var(--primary-color);" onclick="window.viewUserProfile('${
+                  post.authorId || post.userId
+                }')" title="View ${escapeHtml(
+      post.author
+    )}'s profile">${escapeHtml(post.author || "Anonymous")}</span>
               </div>
             </div>
           </div>
@@ -448,8 +467,15 @@ function initializeTopicPage() {
         authorAvatar.textContent = initials;
       }
 
-      document.getElementById("commentModalAuthorName").textContent =
-        post.author || "Anonymous";
+      // ✅ FIXED: Make post author name clickable
+      const authorNameEl = document.getElementById("commentModalAuthorName");
+      authorNameEl.textContent = post.author || "Anonymous";
+      authorNameEl.style.cursor = "pointer";
+      authorNameEl.style.color = "var(--primary-color)";
+      authorNameEl.onclick = () =>
+        window.viewUserProfile(post.authorId || post.userId);
+      authorNameEl.title = `View ${post.author}'s profile`;
+
       document.getElementById("commentModalPostDate").textContent =
         formatRelativeTime(post.created_at || post.created);
       document.getElementById("commentModalPostContent").textContent =
@@ -519,7 +545,7 @@ function initializeTopicPage() {
     }
   };
 
-  // ✅ FIXED: RENDER COMMENTS - Now displays avatars from DB
+  // ✅ FIXED: RENDER COMMENTS - Now displays avatars from DB + clickable names
   function renderComments(comments) {
     const commentsList = document.getElementById("commentModalCommentsList");
     const commentCount = document.getElementById("commentModalCommentCount");
@@ -544,13 +570,16 @@ function initializeTopicPage() {
           avatarHtml = `<div class="comment-avatar">${initials}</div>`;
         }
 
+        // ✅ FIXED: Make comment author name clickable - Use author_id (snake_case from API)
+        const commentAuthorUid =
+          comment.author_id || comment.authorId || comment.userId;
         return `
         <div class="comment-item">
           ${avatarHtml}
           <div class="comment-content">
-            <div class="comment-author" style="font-weight: bold; font-size: 13px;">${escapeHtml(
-              comment.author
-            )}</div>
+            <div class="comment-author" style="font-weight: bold; font-size: 13px; cursor: pointer; color: var(--primary-color);" onclick="window.viewUserProfile('${commentAuthorUid}')" title="View ${escapeHtml(
+          comment.author
+        )}'s profile">${escapeHtml(comment.author)}</div>
             <div class="comment-text" style="font-size: 13px; margin: 5px 0;">${escapeHtml(
               comment.text || comment.content
             )}</div>

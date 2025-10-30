@@ -7,6 +7,8 @@
 // - My Topics shows ALL user topics
 // - Tab system fully functional
 // - Edit/Delete working properly
+// ✅ FIXED: Make author names clickable to view profile
+// ✅ FIXED: Add viewUserProfile global function
 
 import { auth, db } from "../../config/firebase.js";
 import {
@@ -20,6 +22,18 @@ import {
 } from "./topicsClient.js";
 import { apiUrl } from "../../config/appConfig.js";
 import { fetchJsonWithAuth, deleteWithAuth } from "./apiClient.js";
+
+// ✅ NEW: Global function to navigate to user profile
+window.viewUserProfile = function (uid) {
+  if (!uid) {
+    console.warn("[discussion.js] No UID provided to viewUserProfile");
+    return;
+  }
+  console.log(`[discussion.js] Navigating to profile of user: ${uid}`);
+  window.location.href = `/frontend/student/pages/profile.html?uid=${encodeURIComponent(
+    uid
+  )}`;
+};
 
 let CURRENT_SESSION = null;
 let CURRENT_USER_ID = null;
@@ -474,7 +488,7 @@ function initializeDiscussionPage() {
     }
   }
 
-  // ✅ BUILD TOPIC CARD
+  // ✅ BUILD TOPIC CARD - FIXED: Make author name clickable
   function buildTopicCard(topic, isAuthor) {
     const isRecent =
       new Date(topic.latestActivity) >
@@ -507,7 +521,13 @@ function initializeDiscussionPage() {
         <div class="topic-card-content">
           <div class="topic-title">${escapeHtml(topic.title)}</div>
           <div class="topic-meta">
-            <div><i class="bi bi-person"></i> ${escapeHtml(topic.author)}</div>
+            <div><i class="bi bi-person"></i> 
+              <span style="cursor: pointer; color: var(--primary-color);" onclick="window.viewUserProfile('${
+                topic.authorId
+              }')" title="View ${escapeHtml(topic.author)}'s profile">
+                ${escapeHtml(topic.author)}
+              </span>
+            </div>
             <div><i class="bi bi-calendar3"></i> ${formatRelativeTime(
               topic.created
             )}</div>

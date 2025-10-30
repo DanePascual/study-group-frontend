@@ -1,10 +1,11 @@
 // frontend/student/scripts/profile.js
-// SECURITY HARDENED VERSION:
+// SECURITY HARDENED VERSION with read-only mode for viewing other users:
 // - Fixed XSS vulnerability (use .textContent instead of .innerHTML)
 // - Email field is READ-ONLY (cannot be edited)
 // - Input validation & sanitization
 // - Safe DOM updates
 // - Security logging for suspicious activities
+// ✅ FIXED: Support ?uid= parameter for viewing other users' profiles (read-only)
 
 import { auth } from "../../config/firebase.js";
 import { apiUrl } from "../../config/appConfig.js";
@@ -25,6 +26,10 @@ let CURRENT_SESSION = null;
 let currentPhotoURL = null;
 let currentPhotoFilename = null;
 let isLoading = false;
+
+// ✅ NEW: Tracking if we're viewing another user's profile
+let viewingUserId = null;
+let isOwnProfile = false;
 
 // ===== SECURITY: Constants =====
 const MAX_NAME_LENGTH = 255;
@@ -50,6 +55,40 @@ function logSecurityEvent(eventType, details) {
     `[SECURITY] ${timestamp} | Event: ${eventType} | Details:`,
     details
   );
+}
+
+// ✅ NEW: Check if viewing own profile or another user's profile
+function getViewingMode() {
+  const params = new URLSearchParams(window.location.search);
+  const uidParam = params.get("uid");
+
+  if (uidParam && CURRENT_SESSION && uidParam !== CURRENT_SESSION.uid) {
+    // Viewing another user's profile
+    viewingUserId = uidParam;
+    isOwnProfile = false;
+    console.log(`[profile.js] Viewing profile of user: ${uidParam}`);
+  } else {
+    // Viewing own profile
+    viewingUserId = null;
+    isOwnProfile = true;
+    console.log(`[profile.js] Viewing own profile`);
+  }
+}
+
+// ✅ NEW: Load public profile from API
+async function loadPublicProfile(uid) {
+  try {
+    console.log(`[profile.js] Fetching public profile for: ${uid}`);
+    const data = await fetchJsonWithAuth(`/api/users/public/${uid}`, {
+      method: "GET",
+    });
+
+    console.log(`[profile.js] ✅ Loaded public profile:`, data);
+    return data;
+  } catch (err) {
+    console.error(`[profile.js] Failed to load public profile:`, err);
+    throw err;
+  }
 }
 
 // -------------------- Notification --------------------
@@ -114,6 +153,12 @@ function updateProfileUI(profile) {
 
   // ===== SECURITY: Use .textContent to prevent XSS =====
   if (el("displayName")) el("displayName").textContent = profile.name || "";
+
+  // ✅ NEW: Show read-only badge if viewing another user
+  const readOnlyBadge = el("readOnlyBadge");
+  if (readOnlyBadge) {
+    readOnlyBadge.style.display = isOwnProfile ? "none" : "inline-block";
+  }
 
   // ===== SECURITY: Email display (safe - no HTML) =====
   const emailEl = el("displayEmail");
@@ -194,6 +239,16 @@ function updateProfileUI(profile) {
   if (profile.photoFilename) {
     currentPhotoFilename = profile.photoFilename;
   }
+
+  // ✅ NEW: Hide edit button and all edit functionality if viewing another user
+  if (!isOwnProfile) {
+    const editBtn = el("editProfileBtn");
+    if (editBtn) editBtn.style.display = "none";
+
+    document.body.classList.add("read-only-profile");
+  } else {
+    document.body.classList.remove("read-only-profile");
+  }
 }
 
 // -------------------- Upload to backend --------------------
@@ -267,6 +322,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const userNameFromAuth = user.displayName || user.email || "User";
   CURRENT_SESSION = {
+    uid: user.uid,
     datetime: new Date().toISOString(),
     user: userNameFromAuth,
     userAvatar: userNameFromAuth ? userNameFromAuth[0] : "U",
@@ -274,23 +330,41 @@ onAuthStateChanged(auth, async (user) => {
     email: user.email,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila",
   };
+
+  // ✅ NEW: Determine if viewing own profile or another user's
+  getViewingMode();
+
   updateSidebarUserInfo();
 
   try {
-    const profile = await fetchJsonWithAuth("/api/users/profile");
-    CURRENT_SESSION.userProgram = profile.program || "";
+    let profile;
+
+    // ✅ NEW: Load appropriate profile based on viewing mode
+    if (isOwnProfile) {
+      // Load own profile (requires auth, returns all fields)
+      profile = await fetchJsonWithAuth("/api/users/profile");
+      CURRENT_SESSION.userProgram = profile.program || "";
+    } else {
+      // Load public profile (no auth required, limited fields)
+      profile = await loadPublicProfile(viewingUserId);
+    }
+
     updateSidebarUserInfo();
     currentPhotoURL = profile.photo || null;
     currentPhotoFilename = profile.photoFilename || null;
     updateProfileUI(profile);
 
-    broadcastProfileUpdated(profile);
+    if (isOwnProfile) {
+      broadcastProfileUpdated(profile);
+    }
 
     if (overlay) overlay.classList.remove("visible");
   } catch (err) {
     console.error("Error fetching profile from backend:", err);
     showNotification(
-      "Could not load your profile. Please try again later.",
+      isOwnProfile
+        ? "Could not load your profile. Please try again later."
+        : "Could not load user profile. Please try again later.",
       "error"
     );
     if (overlay) overlay.classList.remove("visible");
@@ -301,14 +375,18 @@ onAuthStateChanged(auth, async (user) => {
 const fileWrapper = document.querySelector(".file-input-wrapper");
 if (fileWrapper) {
   fileWrapper.addEventListener("click", () => {
-    const photoInput = document.getElementById("photoInput");
-    if (photoInput) photoInput.click();
+    if (isOwnProfile) {
+      const photoInput = document.getElementById("photoInput");
+      if (photoInput) photoInput.click();
+    }
   });
 }
 
 const photoInput = document.getElementById("photoInput");
 if (photoInput) {
   photoInput.addEventListener("change", async (e) => {
+    if (!isOwnProfile) return; // Shouldn't happen if edit is hidden
+
     const file = e.target.files[0];
     if (!file) return;
 
@@ -384,6 +462,11 @@ if (photoInput) {
 
 // -------------------- Save profile --------------------
 async function saveProfile() {
+  if (!isOwnProfile) {
+    showNotification("You cannot edit another user's profile", "error");
+    return;
+  }
+
   if (isLoading) return;
   if (!validateAllFields()) {
     showNotification("Please correct the errors in the form", "error");
@@ -474,6 +557,10 @@ async function saveProfile() {
 
 // -------------------- Modal helpers --------------------
 function openEditModal() {
+  if (!isOwnProfile) {
+    showNotification("You cannot edit another user's profile", "error");
+    return;
+  }
   const editModal = document.getElementById("editModal");
   if (!editModal) return;
   editModal.style.display = "block";
@@ -514,6 +601,10 @@ function wireChangePasswordUI() {
 
   if (openBtn) {
     openBtn.addEventListener("click", () => {
+      if (!isOwnProfile) {
+        showNotification("You cannot change another user's password", "error");
+        return;
+      }
       if (modal) {
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
@@ -635,6 +726,8 @@ function validateField(field) {
 }
 
 function validateAllFields() {
+  if (!isOwnProfile) return true; // Can't edit other profiles
+
   const requiredFields = ["editName", "editStudentNumber", "editProgram"];
   let valid = true;
   requiredFields.forEach((id) => {
@@ -685,7 +778,11 @@ function animateOnLoad() {
 // -------------------- DOMContentLoaded wiring --------------------
 document.addEventListener("DOMContentLoaded", () => {
   animateOnLoad();
-  initializeFormValidation();
+
+  if (isOwnProfile) {
+    initializeFormValidation();
+  }
+
   updateLastUpdatedTime();
 
   const editProfileBtn = document.getElementById("editProfileBtn");

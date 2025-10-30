@@ -136,8 +136,25 @@
         max-width: 520px;
         margin: 20px auto;
       }
+
+      /* ✅ NEW: Read-only profile styles */
+      .read-only-profile .edit-profile-btn {
+        display: none !important;
+      }
+      .read-only-profile #editProfileBtn {
+        display: none !important;
+      }
+      .read-only-badge {
+        display: inline-block;
+        background: #2196f3;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-left: 10px;
+      }
     </style>
-    <title>Profile - Study Group</title>
+    <title id="pageTitle">Profile - Study Group</title>
   </head>
   <body>
     <!-- Loading Overlay -->
@@ -145,7 +162,7 @@
       <div class="spinner">
         <i class="bi bi-arrow-repeat spinning"></i>
       </div>
-      <p>Loading your profile...</p>
+      <p>Loading profile...</p>
     </div>
 
     <!-- Sidebar -->
@@ -242,7 +259,16 @@
             </button>
           </div>
           <div class="profile-info">
-            <h1 class="profile-name" id="displayName">Loading...</h1>
+            <h1 class="profile-name" id="displayName">
+              Loading...
+              <span
+                id="readOnlyBadge"
+                class="read-only-badge"
+                style="display: none"
+              >
+                Viewing Profile
+              </span>
+            </h1>
             <p class="profile-email" id="displayEmail">
               <i class="bi bi-envelope"></i>
               <span class="email-text">Loading...</span>
