@@ -8,6 +8,8 @@
 // - FIXED: Load all rooms at once, not in batches
 // - FIXED: Card layout with full text wrapping (no tooltips)
 // - FIXED: Footer (participant count + Enter Now button) at bottom of card
+// - ADDED: Password visibility toggle with eye icon
+// - ADDED: Real-time password requirements validation
 
 import { auth, db } from "../../config/firebase.js";
 import {
@@ -74,6 +76,105 @@ function debugLog(msg, data = null) {
   );
 }
 
+/* ===== PASSWORD VISIBILITY TOGGLE ===== */
+function initializePasswordToggles() {
+  // Toggle for creation modal password field
+  const passwordToggleBtn = document.getElementById("passwordToggleBtn");
+  const roomPassword = document.getElementById("roomPassword");
+
+  if (passwordToggleBtn && roomPassword) {
+    passwordToggleBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      togglePasswordVisibility(roomPassword, passwordToggleBtn);
+    });
+  }
+
+  // Toggle for access modal password field
+  const accessPasswordToggleBtn = document.getElementById(
+    "accessPasswordToggleBtn"
+  );
+  const privateRoomPassword = document.getElementById("privateRoomPassword");
+
+  if (accessPasswordToggleBtn && privateRoomPassword) {
+    accessPasswordToggleBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      togglePasswordVisibility(privateRoomPassword, accessPasswordToggleBtn);
+    });
+  }
+}
+
+function togglePasswordVisibility(inputElement, toggleButton) {
+  const isPassword = inputElement.type === "password";
+  inputElement.type = isPassword ? "text" : "password";
+
+  const icon = toggleButton.querySelector("i");
+  if (icon) {
+    icon.classList.toggle("bi-eye");
+    icon.classList.toggle("bi-eye-slash");
+  }
+
+  debugLog(`Password visibility toggled: ${isPassword ? "visible" : "hidden"}`);
+}
+
+/* ===== PASSWORD REQUIREMENTS VALIDATION ===== */
+function initializePasswordRequirements() {
+  const roomPassword = document.getElementById("roomPassword");
+
+  if (roomPassword) {
+    roomPassword.addEventListener("input", function () {
+      validatePasswordRequirements(this.value);
+    });
+  }
+}
+
+function validatePasswordRequirements(password) {
+  // Requirement 1: Minimum 8 characters
+  const lengthReq = document.getElementById("req-length");
+  const hasLength = password.length >= 8;
+  updateRequirementStatus(lengthReq, hasLength);
+
+  // Requirement 2: At least one uppercase letter
+  const uppercaseReq = document.getElementById("req-uppercase");
+  const hasUppercase = /[A-Z]/.test(password);
+  updateRequirementStatus(uppercaseReq, hasUppercase);
+
+  // Requirement 3: At least one lowercase letter
+  const lowercaseReq = document.getElementById("req-lowercase");
+  const hasLowercase = /[a-z]/.test(password);
+  updateRequirementStatus(lowercaseReq, hasLowercase);
+
+  // Requirement 4: At least one number
+  const numberReq = document.getElementById("req-number");
+  const hasNumber = /[0-9]/.test(password);
+  updateRequirementStatus(numberReq, hasNumber);
+
+  debugLog("Password requirements validated", {
+    length: hasLength,
+    uppercase: hasUppercase,
+    lowercase: hasLowercase,
+    number: hasNumber,
+  });
+}
+
+function updateRequirementStatus(element, isMet) {
+  if (!element) return;
+
+  const icon = element.querySelector("i");
+  if (!icon) return;
+
+  if (isMet) {
+    element.classList.add("met");
+    element.classList.remove("unmet");
+    icon.classList.remove("bi-circle");
+    icon.classList.add("bi-check-circle-fill");
+  } else {
+    element.classList.remove("met");
+    element.classList.add("unmet");
+    icon.classList.remove("bi-check-circle-fill");
+    icon.classList.add("bi-circle");
+  }
+}
+
 /* ===== PRIVATE ROOM PASSWORD MODAL ===== */
 function openPrivateRoomPasswordModal(roomId, roomName) {
   try {
@@ -96,6 +197,17 @@ function openPrivateRoomPasswordModal(roomId, roomName) {
     const passwordInput = document.getElementById("privateRoomPassword");
     if (passwordInput) {
       passwordInput.value = "";
+      passwordInput.type = "password";
+    }
+
+    // Reset toggle button to show eye icon
+    const toggleBtn = document.getElementById("accessPasswordToggleBtn");
+    if (toggleBtn) {
+      const icon = toggleBtn.querySelector("i");
+      if (icon) {
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+      }
     }
 
     pendingPrivateRoomId = roomId;
@@ -579,6 +691,10 @@ document.addEventListener("DOMContentLoaded", function () {
     console.error("Error initializing Bootstrap components:", err);
   }
 
+  // Initialize password toggles and requirements validation
+  initializePasswordToggles();
+  initializePasswordRequirements();
+
   initializeTabSystem();
 
   const searchInput = document.getElementById("searchInput");
@@ -858,6 +974,19 @@ async function handleCreateRoom() {
       showToast("Password must be 100 characters or less", "error");
       return;
     }
+
+    // Validate all password requirements
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      showToast(
+        "Password must contain uppercase, lowercase, and numbers",
+        "error"
+      );
+      return;
+    }
   }
 
   const confirmed = confirm(
@@ -940,6 +1069,28 @@ function resetCreateRoomForm() {
   if (passwordField) {
     passwordField.style.display = "none";
   }
+
+  // Reset password toggle button icon
+  const toggleBtn = document.getElementById("passwordToggleBtn");
+  if (toggleBtn) {
+    const icon = toggleBtn.querySelector("i");
+    if (icon) {
+      icon.classList.remove("bi-eye-slash");
+      icon.classList.add("bi-eye");
+    }
+  }
+
+  // Reset all requirement indicators
+  const reqElements = document.querySelectorAll(".requirement-item");
+  reqElements.forEach((req) => {
+    req.classList.remove("met");
+    req.classList.add("unmet");
+    const icon = req.querySelector("i");
+    if (icon) {
+      icon.classList.remove("bi-check-circle-fill");
+      icon.classList.add("bi-circle");
+    }
+  });
 }
 
 /* ===== Search ===== */

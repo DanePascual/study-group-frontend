@@ -261,16 +261,50 @@
                 <label for="roomPassword" class="form-label">
                   <i class="bi bi-lock-fill"></i> Room Password
                 </label>
-                <input
-                  type="password"
-                  class="form-control"
-                  id="roomPassword"
-                  name="password"
-                  placeholder="Set a password for this private room"
-                />
-                <small class="text-muted"
-                  >Minimum 8 characters. Users will need this to join.</small
-                >
+                <div class="password-input-wrapper">
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="roomPassword"
+                    name="password"
+                    placeholder="Set a password for this private room"
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle-btn"
+                    id="passwordToggleBtn"
+                    aria-label="Toggle password visibility"
+                    title="Show/Hide password"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+
+                <!-- Password Requirements Checklist -->
+                <div class="password-requirements-container">
+                  <div class="requirements-title">
+                    <i class="bi bi-info-circle"></i> Password Requirements:
+                  </div>
+                  <ul class="requirements-list">
+                    <li class="requirement-item" id="req-length">
+                      <i class="bi bi-circle"></i>
+                      <span>Minimum 8 characters</span>
+                    </li>
+                    <li class="requirement-item" id="req-uppercase">
+                      <i class="bi bi-circle"></i>
+                      <span>At least one uppercase letter (A-Z)</span>
+                    </li>
+                    <li class="requirement-item" id="req-lowercase">
+                      <i class="bi bi-circle"></i>
+                      <span>At least one lowercase letter (a-z)</span>
+                    </li>
+                    <li class="requirement-item" id="req-number">
+                      <i class="bi bi-circle"></i>
+                      <span>At least one number (0-9)</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </form>
           </div>
@@ -319,13 +353,24 @@
               <label for="privateRoomPassword" class="form-label"
                 >Room Password</label
               >
-              <input
-                type="password"
-                class="form-control"
-                id="privateRoomPassword"
-                placeholder="Enter password"
-                autocomplete="off"
-              />
+              <div class="password-input-wrapper">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="privateRoomPassword"
+                  placeholder="Enter password"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="password-toggle-btn"
+                  id="accessPasswordToggleBtn"
+                  aria-label="Toggle password visibility"
+                  title="Show/Hide password"
+                >
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
             </div>
             <small class="text-muted">
               You must have the correct password to enter this private room.
