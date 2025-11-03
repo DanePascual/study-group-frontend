@@ -255,6 +255,66 @@ document
     }
   });
 
+// ===== CONFIRMATION DIALOG FUNCTIONS =====
+function showConfirmationDialog(onConfirm) {
+  const dialog = document.getElementById("confirmationDialog");
+  const cancelBtn = document.getElementById("confirmCancel");
+  const confirmBtn = document.getElementById("confirmYes");
+  const overlay = document.querySelector(".confirmation-overlay");
+
+  dialog.style.display = "flex";
+
+  cancelBtn.onclick = () => {
+    dialog.style.display = "none";
+    logSecurityEvent("RESET_PASSWORD_CANCELLED", {});
+  };
+
+  confirmBtn.onclick = () => {
+    dialog.style.display = "none";
+    onConfirm();
+  };
+
+  overlay.onclick = () => {
+    dialog.style.display = "none";
+    logSecurityEvent("RESET_PASSWORD_CANCELLED", {});
+  };
+
+  // Close on Escape key
+  const escapeHandler = (e) => {
+    if (e.key === "Escape" && dialog.style.display === "flex") {
+      dialog.style.display = "none";
+      document.removeEventListener("keydown", escapeHandler);
+      logSecurityEvent("RESET_PASSWORD_CANCELLED", {});
+    }
+  };
+  document.addEventListener("keydown", escapeHandler);
+}
+
+async function performPasswordReset(password) {
+  resetBtn.disabled = true;
+  document.querySelector("#resetBtn .btn-content").style.display = "none";
+  document.querySelector("#resetBtn .btn-loader").style.display = "flex";
+
+  try {
+    await confirmPasswordReset(auth, oobCode, password);
+    logSecurityEvent("RESET_PASSWORD_SUCCESS", {});
+    showSuccessState();
+    updateProgress(3);
+  } catch (err) {
+    resetBtn.disabled = false;
+    document.querySelector("#resetBtn .btn-content").style.display = "flex";
+    document.querySelector("#resetBtn .btn-loader").style.display = "none";
+
+    logSecurityEvent("RESET_PASSWORD_FAILED", { error: err.code });
+
+    const msg =
+      err.code === "auth/expired-action-code"
+        ? "Reset link expired. Please request a new one."
+        : "Error resetting password. Please try again.";
+    showError(msg);
+  }
+}
+
 // ===== Form Submission =====
 resetPasswordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -297,34 +357,10 @@ resetPasswordForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  // Show confirmation
-  if (!confirm("Reset your password? You'll need to sign in again.")) {
-    logSecurityEvent("RESET_PASSWORD_CANCELLED", {});
-    return;
-  }
-
-  resetBtn.disabled = true;
-  document.querySelector("#resetBtn .btn-content").style.display = "none";
-  document.querySelector("#resetBtn .btn-loader").style.display = "flex";
-
-  try {
-    await confirmPasswordReset(auth, oobCode, pwd);
-    logSecurityEvent("RESET_PASSWORD_SUCCESS", {});
-    showSuccessState();
-    updateProgress(3);
-  } catch (err) {
-    resetBtn.disabled = false;
-    document.querySelector("#resetBtn .btn-content").style.display = "flex";
-    document.querySelector("#resetBtn .btn-loader").style.display = "none";
-
-    logSecurityEvent("RESET_PASSWORD_FAILED", { error: err.code });
-
-    const msg =
-      err.code === "auth/expired-action-code"
-        ? "Reset link expired. Please request a new one."
-        : "Error resetting password. Please try again.";
-    showError(msg);
-  }
+  // Show styled confirmation dialog
+  showConfirmationDialog(() => {
+    performPasswordReset(pwd);
+  });
 });
 
 // ===== Show Error State =====
