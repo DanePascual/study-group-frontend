@@ -133,7 +133,7 @@
                   <i class="bi bi-check2-square"></i>
                   Study Notes & Tasks
                 </h3>
-                <button class="add-todo-btn" onclick="openTodoModal()">
+                <button class="add-todo-btn" onclick="window.openTodoModal()">
                   Add Task
                 </button>
               </div>
@@ -160,7 +160,7 @@
           <h3 class="modal-title" id="modalTitle">Add Study Task & Reminder</h3>
           <button
             class="close-modal"
-            onclick="closeTodoModal()"
+            onclick="window.closeTodoModal()"
             aria-label="Close modal"
           ></button>
         </div>
@@ -187,7 +187,7 @@
             <button
               type="button"
               class="modal-btn modal-btn-cancel"
-              onclick="closeTodoModal()"
+              onclick="window.closeTodoModal()"
             >
               Cancel
             </button>
@@ -199,13 +199,74 @@
       </div>
     </div>
 
-    <!-- Load bootstrap JS first (optional) -->
+    <!-- Private Room Password Modal -->
+    <div
+      id="privateRoomPasswordModal"
+      class="modal fade"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="privateRoomPasswordTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="privateRoomPasswordTitle">
+              <i class="bi bi-lock-fill" style="margin-right: 10px"></i>
+              Enter Room Password
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>This is a private room. Please enter the password to join.</p>
+            <p style="font-weight: 600; color: #333; margin-bottom: 15px">
+              Room: <span id="privateRoomName"></span>
+            </p>
+            <div class="form-group">
+              <label class="form-label" for="privateRoomPassword"
+                >Password</label
+              >
+              <input
+                type="password"
+                class="form-input"
+                id="privateRoomPassword"
+                placeholder="Enter password..."
+                required
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="submitPrivateRoomPassword"
+            >
+              <i class="bi bi-check-lg"></i> Verify Password
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load bootstrap JS first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
-    <!-- IMPORTANT: load centralized sidebar BEFORE page script so sidebar is initialized first -->
+    <!-- Load sidebar -->
     <script type="module" src="../scripts/sidebar.js"></script>
 
-    <!-- Page script depends on sidebar being ready (theme toggle, keyboard shortcut) -->
+    <!-- Load dashboard -->
     <script type="module" src="../scripts/dashboard.js"></script>
   </body>
 </html>
