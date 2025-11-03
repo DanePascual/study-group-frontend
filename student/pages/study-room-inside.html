@@ -23,7 +23,6 @@
           StudyGroup
         </div>
       </div>
-
       <nav class="sidebar-menu">
         <a href="dashboard.html" class="sidebar-item">
           <i class="bi bi-house"></i>
@@ -50,12 +49,8 @@
           Report
         </a>
       </nav>
-
       <div class="sidebar-footer">
-        <div
-          class="user-info"
-          style="cursor: pointer; transition: all 0.3s ease"
-        >
+        <div class="user-info">
           <div class="user-avatar" id="sidebarAvatar"></div>
           <div>
             <div style="font-weight: bold; font-size: 14px" id="sidebarName">
@@ -81,22 +76,17 @@
           <button class="menu-toggle" id="menuToggle">
             <i class="bi bi-list"></i>
           </button>
-          <h1 class="page-title" id="roomTitleNav">
+          <h1 class="page-title">
             <i class="bi bi-hash"></i>
             <span id="roomNameDisplay">Loading Room...</span>
-            <div class="live-indicator" title="Room is active"></div>
+            <div class="live-indicator"></div>
           </h1>
         </div>
         <div class="nav-right">
           <button class="theme-toggle" id="themeToggle" title="Toggle theme">
             <i class="bi bi-moon"></i>
           </button>
-          <button
-            class="settings-btn"
-            id="settingsBtn"
-            title="Room settings"
-            style="display: block"
-          >
+          <button class="settings-btn" id="settingsBtn" title="Room settings">
             <i class="bi bi-gear"></i>
           </button>
           <a href="study-rooms.html" class="btn btn-outline-secondary btn-sm">
@@ -105,108 +95,115 @@
         </div>
       </div>
 
-      <!-- Room Status Bar -->
-      <div class="room-status-bar">
-        <div class="room-info">
+      <!-- Room Header - Simplified (NO BADGES) -->
+      <div class="room-header">
+        <div class="room-header-left">
           <div class="room-title">
             <i class="bi bi-people-fill"></i>
             <span id="roomTitleDisplay">Loading Room...</span>
           </div>
-          <div class="room-meta">
-            <div class="room-badges">
-              <span class="badge bg-success">Active</span>
-              <span
-                class="badge bg-light text-dark"
-                id="createdByBadge"
-                style="display: none"
-              ></span>
-              <span class="badge bg-info text-white" id="sessionBadge"
-                >Session #1</span
-              >
-            </div>
-            <div class="room-subtitle" id="roomCreatedTime">
-              Created on 2025-10-12 03:15:37 UTC
-            </div>
-          </div>
         </div>
-        <div class="room-actions">
-          <button
-            class="btn btn-outline-success room-action-btn"
-            id="inviteBtn"
-          >
+        <div class="room-header-right">
+          <button class="btn btn-sm btn-outline-success" id="inviteBtn">
             <i class="bi bi-person-plus"></i> Invite
           </button>
         </div>
       </div>
 
-      <!-- Main Room Content -->
-      <div class="room-container">
-        <!-- Left Panel - Participants -->
-        <div class="left-panel">
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <i class="bi bi-people-fill"></i> Participants
-              </div>
-              <span class="badge bg-success rounded-pill" id="participantCount"
-                >1</span
-              >
-            </div>
-            <div class="panel-body">
-              <div class="participants-list" id="participantsList">
-                <div class="participant-item" data-user="DanePascual">
-                  <div class="participant-avatar">
-                    DP
-                    <div class="status-indicator status-online"></div>
-                  </div>
-                  <div class="participant-info">
-                    <div class="participant-name">DanePascual (You)</div>
-                    <div class="participant-status">Host</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <!-- Main Room Layout -->
+      <div class="room-layout">
+        <!-- Left Sidebar: Participants -->
+        <div class="participants-sidebar">
+          <div class="sidebar-header">
+            <h5 class="sidebar-title">
+              <i class="bi bi-people-fill"></i> Participants
+            </h5>
+            <span class="participant-count" id="participantCount">1</span>
+          </div>
+          <div class="participants-list" id="participantsList">
+            <!-- JS populates -->
           </div>
         </div>
 
-        <!-- Right Panel - Main Chat Area -->
-        <div class="right-panel">
-          <div class="chat-container">
-            <div class="chat-header">
-              <div class="chat-title"><i class="bi bi-chat-dots"></i> Chat</div>
-              <div id="callIndicator" style="display: none">
-                <span class="badge bg-success"
-                  ><i class="bi bi-camera-video-fill"></i> In Call</span
-                >
-              </div>
+        <!-- Center: Video Area -->
+        <div class="video-main">
+          <div class="video-container" id="videoContainer">
+            <div class="video-placeholder" id="videoPlaceholder">
+              <i class="bi bi-camera-video"></i>
+              <p>Click to start video call</p>
+              <button class="btn btn-primary btn-lg" id="videoCallBtn">
+                <i class="bi bi-camera-video-fill"></i> Start Call
+              </button>
             </div>
+            <div class="video-grid" id="videoGrid" style="display: none"></div>
+          </div>
 
-            <div class="chat-messages" id="chatMessages">
-              <div class="empty-state">
-                <i class="bi bi-chat-dots empty-state-icon"></i>
-                <div>No messages yet</div>
-                <div>Start the conversation!</div>
-              </div>
+          <!-- Video Controls Bar -->
+          <div
+            class="video-controls"
+            id="videoControlsBar"
+            style="display: none"
+          >
+            <button
+              class="video-control-btn"
+              id="toggleMicBtn"
+              title="Toggle Microphone (Alt+M)"
+            >
+              <i class="bi bi-mic-fill"></i>
+            </button>
+            <button
+              class="video-control-btn"
+              id="toggleCameraBtn"
+              title="Toggle Camera (Alt+V)"
+            >
+              <i class="bi bi-camera-video-fill"></i>
+            </button>
+            <button
+              class="video-control-btn"
+              id="toggleScreenBtn"
+              title="Share Screen (Alt+S)"
+            >
+              <i class="bi bi-share"></i>
+            </button>
+            <button
+              class="video-control-btn btn-danger"
+              id="endCallBtn"
+              title="End Call (Alt+L)"
+            >
+              <i class="bi bi-phone-fill"></i> End
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Sidebar: Chat -->
+        <div class="chat-sidebar">
+          <div class="sidebar-header">
+            <h5 class="sidebar-title"><i class="bi bi-chat-dots"></i> Chat</h5>
+          </div>
+
+          <!-- Messages -->
+          <div class="chat-messages" id="chatMessages">
+            <div class="empty-state">
+              <i class="bi bi-chat-dots"></i>
+              <p>No messages yet</p>
             </div>
+          </div>
 
-            <div class="chat-input">
+          <!-- Input -->
+          <div class="chat-input-wrapper">
+            <div class="chat-input-group">
               <input
                 type="text"
-                placeholder="Type a message..."
+                class="chat-input"
                 id="messageInput"
+                placeholder="Type a message..."
               />
-              <div class="chat-actions">
-                <button
-                  class="chat-action-btn"
-                  id="attachBtn"
-                  title="Attach Image"
-                >
-                  <i class="bi bi-paperclip"></i>
-                </button>
-                <button class="chat-send" id="sendMessageBtn">
-                  <i class="bi bi-send-fill"></i>
-                </button>
-              </div>
+              <button class="chat-btn" id="attachBtn" title="Attach file">
+                <i class="bi bi-paperclip"></i>
+              </button>
+              <button class="chat-btn-send" id="sendMessageBtn">
+                <i class="bi bi-send-fill"></i>
+              </button>
               <input
                 type="file"
                 class="file-input"
@@ -215,60 +212,6 @@
               />
             </div>
           </div>
-
-          <button
-            class="video-call-btn"
-            id="videoCallBtn"
-            title="Start Video Call"
-          >
-            <i class="bi bi-camera-video-fill"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Picture-in-Picture Video Container -->
-    <div class="video-container" id="videoContainer">
-      <div class="video-header" id="videoHeader">
-        <div class="video-title">
-          <i class="bi bi-camera-video"></i> Video Call
-          <span class="maximized-indicator">
-            <i class="bi bi-fullscreen"></i> Fullscreen
-          </span>
-        </div>
-        <div class="video-actions">
-          <button
-            class="video-action-btn"
-            id="minimizeBtn"
-            title="Minimize (Alt+Down)"
-          >
-            <i class="bi bi-dash-lg"></i>
-          </button>
-          <button
-            class="video-action-btn"
-            id="maximizeBtn"
-            title="Maximize (Alt+Up)"
-          >
-            <i class="bi bi-arrows-angle-expand"></i>
-          </button>
-          <button
-            class="video-action-btn"
-            id="closeVideoBtn"
-            title="Close (Alt+L)"
-          >
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="video-body">
-        <div class="video-placeholder" id="videoPlaceholder">
-          <i class="bi bi-camera-video" style="font-size: 32px"></i>
-          <div>Click to start a video call</div>
-        </div>
-
-        <div class="video-grid" id="videoGrid" style="display: none">
-          <!-- ZegoCloud UI will render here -->
         </div>
       </div>
     </div>
@@ -306,17 +249,11 @@
               ></textarea>
             </div>
             <div class="mb-3">
-              <h6>Participants</h6>
-              <div
-                id="participantsList2"
-                style="max-height: 200px; overflow-y: auto"
-              ></div>
-            </div>
-            <div class="mb-3">
               <h6>Shared Files</h6>
               <div
                 id="filesList"
-                style="max-height: 200px; overflow-y: auto"
+                class="files-list"
+                style="max-height: 300px; overflow-y: auto"
               ></div>
             </div>
           </div>
@@ -397,7 +334,10 @@
       </div>
     </div>
 
-    <!-- Page Loading Overlay -->
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Page Loading -->
     <div id="pageLoadingOverlay" class="loading-overlay" style="display: none">
       <div class="loading-content">
         <div class="spinner-grow text-success"></div>
@@ -405,15 +345,13 @@
       </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-    <!-- Firebase Initialization -->
+    <!-- Firebase Config -->
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyAn1-kQypHeeoqZRGYKhJfE5AiICkTX_Hw",
@@ -424,18 +362,14 @@
         appId: "1:857690286168:web:93e5f7bf374b62445a022d",
         measurementId: "G-MR51J9BKM0",
       };
-
       if (!firebase.apps || !firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
-        console.log("Firebase (compat) initialized");
       }
       window.firebaseAppInstance = firebase;
     </script>
 
-    <!-- ✅ FIXED: Load study-room-inside FIRST (before sidebar.js) -->
+    <!-- App Modules -->
     <script type="module" src="../scripts/study-group-inside/index.js"></script>
-
-    <!-- Load sidebar.js AFTER study-room-inside initializes -->
     <script type="module" src="../scripts/sidebar.js"></script>
   </body>
 </html>
