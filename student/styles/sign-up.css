@@ -30,7 +30,7 @@ select {
 }
 
 .main-container {
-  background: linear-gradient(135deg, #618668 0%, #a2e0d8 100%);
+  background: linear-gradient(135deg, #4caf50 0%, #81c784 50%, #a5d6a7 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
