@@ -1096,6 +1096,9 @@ body.dark-mode .modal-body {
   border-top: 1px solid var(--border);
   padding: 15px 20px 20px;
   background: var(--bg-white);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 body.dark-mode .modal-footer {
@@ -1205,6 +1208,11 @@ body.dark-mode .form-control-lg {
   color: #e0e0e0;
 }
 
+body.dark-mode .form-control::placeholder,
+body.dark-mode .form-control-lg::placeholder {
+  color: #999;
+}
+
 .form-control:focus,
 .form-control-lg:focus {
   border-color: var(--primary-color);
@@ -1303,6 +1311,10 @@ body.dark-mode .alert-info {
 
 .alert-info strong {
   color: var(--primary-color);
+}
+
+body.dark-mode .alert-info strong {
+  color: #66bb6a;
 }
 
 .alert-info p {
@@ -1437,37 +1449,118 @@ body.dark-mode #passwordResetAlert.alert-danger {
   color: #ff5252;
 }
 
+/* ✅ PROFESSIONAL BUTTON STYLING - Clean & Minimal */
+
+/* Close Button */
+.modal-footer .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--medium-text);
+  font-weight: 500;
+  padding: 9px 20px;
+  transition: all 0.2s ease;
+}
+
+.modal-footer .btn-secondary:hover {
+  background: var(--bg-light);
+  border-color: var(--medium-text);
+}
+
+body.dark-mode .modal-footer .btn-secondary {
+  border-color: #444;
+  color: #bbb;
+}
+
+body.dark-mode .modal-footer .btn-secondary:hover {
+  background: #333;
+  border-color: #666;
+}
+
+/* Delete Room Button - Outline Style */
+#deleteRoomBtn {
+  background: transparent;
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  font-weight: 500;
+  padding: 9px 20px;
+  transition: all 0.2s ease;
+}
+
+#deleteRoomBtn:hover {
+  background: rgba(244, 67, 54, 0.08);
+  border-color: var(--danger-color);
+}
+
+body.dark-mode #deleteRoomBtn {
+  border-color: #ff5252;
+  color: #ff5252;
+}
+
+body.dark-mode #deleteRoomBtn:hover {
+  background: rgba(255, 82, 82, 0.1);
+  border-color: #ff5252;
+}
+
+/* Save Changes Button - Filled Style */
+#saveSettingsBtn {
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: white;
+  font-weight: 500;
+  padding: 9px 24px;
+  transition: all 0.2s ease;
+}
+
+#saveSettingsBtn:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+body.dark-mode #saveSettingsBtn {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+body.dark-mode #saveSettingsBtn:hover {
+  background: #66bb6a;
+  border-color: #66bb6a;
+}
+
 /* Password Reset Button */
 #confirmPasswordResetBtn {
   background: var(--primary-color);
-  border-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   color: white;
-  font-weight: 600;
-  padding: 12px 20px;
+  font-weight: 500;
+  padding: 11px 20px;
   transition: all 0.2s ease;
 }
 
 #confirmPasswordResetBtn:hover:not(:disabled) {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 #confirmPasswordResetBtn:disabled {
-  background: #ccc;
-  border-color: #ccc;
+  background: #ddd;
+  border-color: #ddd;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 body.dark-mode #confirmPasswordResetBtn {
   background: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 body.dark-mode #confirmPasswordResetBtn:hover:not(:disabled) {
   background: #66bb6a;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+  border-color: #66bb6a;
+}
+
+body.dark-mode #confirmPasswordResetBtn:disabled {
+  background: #666;
+  border-color: #666;
 }
 
 /* ===== MODALS ===== */
@@ -1750,6 +1843,15 @@ body.dark-mode .toast-close {
   #confirmPasswordResetBtn {
     padding: 10px 15px;
     font-size: 14px;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    font-size: 13px;
+    padding: 8px 16px;
   }
 }
 

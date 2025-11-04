@@ -262,13 +262,15 @@
                   <i class="bi bi-lock-fill"></i> Room Password
                 </label>
                 <div class="password-input-wrapper">
+                  <i class="bi bi-lock input-icon"></i>
                   <input
                     type="password"
                     class="form-control"
                     id="roomPassword"
                     name="password"
                     placeholder="Set a password for this private room"
-                    autocomplete="off"
+                    autocomplete="new-password"
+                    spellcheck="false"
                   />
                   <button
                     type="button"
@@ -354,12 +356,14 @@
                 >Room Password</label
               >
               <div class="password-input-wrapper">
+                <i class="bi bi-lock input-icon"></i>
                 <input
                   type="password"
                   class="form-control"
                   id="privateRoomPassword"
                   placeholder="Enter password"
-                  autocomplete="off"
+                  autocomplete="new-password"
+                  spellcheck="false"
                 />
                 <button
                   type="button"
