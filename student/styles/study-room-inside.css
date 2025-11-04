@@ -3,6 +3,7 @@
   --primary-color: #4caf50;
   --primary-hover: #388e3c;
   --primary-light: #e8f5e8;
+  --primary-dark: #2e7d32;
   --secondary-color: #2196f3;
   --danger-color: #f44336;
   --dark-text: #333;
@@ -307,6 +308,30 @@ body.dark-mode .settings-btn:hover {
   color: var(--primary-color);
 }
 
+/* ✅ FIXED: Leave Room Button Styling */
+#leaveRoomBtn {
+  background: none;
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  transition: var(--transition);
+}
+
+#leaveRoomBtn:hover {
+  background: var(--danger-color);
+  color: white;
+  transform: translateY(-1px);
+}
+
+body.dark-mode #leaveRoomBtn {
+  border-color: #ff5252;
+  color: #ff5252;
+}
+
+body.dark-mode #leaveRoomBtn:hover {
+  background: #ff5252;
+  color: white;
+}
+
 /* ===== ROOM HEADER ===== */
 .room-header {
   background: var(--bg-white);
@@ -477,6 +502,7 @@ body.dark-mode .participant-item:hover {
   font-size: 14px;
   position: relative;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .participant-avatar img {
@@ -487,25 +513,15 @@ body.dark-mode .participant-item:hover {
 }
 
 .status-indicator {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid var(--bg-white);
-}
-
-body.dark-mode .status-indicator {
-  border-color: #2a2a2a;
+  display: none;
 }
 
 .status-online {
-  background: var(--primary-color);
+  display: none;
 }
 
 .status-in-call {
-  background: var(--secondary-color);
+  display: none;
 }
 
 .participant-info {
@@ -787,6 +803,7 @@ body.dark-mode .empty-state i {
   font-weight: 600;
   font-size: 13px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 body.dark-mode .message-avatar {
@@ -810,6 +827,7 @@ body.dark-mode .message-avatar {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   word-wrap: break-word;
   color: var(--dark-text);
+  max-width: 100%;
 }
 
 body.dark-mode .message-bubble {
@@ -841,12 +859,16 @@ body.dark-mode .message-content {
 }
 
 .message-image {
-  max-width: 300px;
+  max-width: 100%;
   max-height: 200px;
+  width: auto;
+  height: auto;
   border-radius: 8px;
   margin-top: 4px;
   cursor: pointer;
   transition: transform 0.2s;
+  object-fit: contain;
+  display: block;
 }
 
 .message-image:hover {
@@ -892,7 +914,6 @@ body.dark-mode .chat-message.system .message-bubble {
   border: 1px solid #333;
 }
 
-/* Date separator */
 .date-separator {
   display: flex;
   align-items: center;
@@ -1029,23 +1050,41 @@ body.dark-mode .chat-btn:hover {
   display: none;
 }
 
-/* ===== MODALS ===== */
+/* ===== SETTINGS MODAL - GREEN THEME ===== */
 .modal-content {
   border: none;
   border-radius: 10px;
   overflow: hidden;
 }
 
+body.dark-mode .modal-content {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
 .modal-header {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
   color: white;
-  padding: 15px 20px;
+  padding: 20px;
   border-bottom: none;
+}
+
+.modal-header .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+body.dark-mode .modal-header {
+  background: linear-gradient(135deg, #2e5d31 0%, #4a7c4f 100%);
 }
 
 .modal-body {
   padding: 20px;
   color: var(--dark-text);
+  background: var(--bg-white);
 }
 
 body.dark-mode .modal-body {
@@ -1054,25 +1093,159 @@ body.dark-mode .modal-body {
 }
 
 .modal-footer {
-  border-top: none;
+  border-top: 1px solid var(--border);
   padding: 15px 20px 20px;
   background: var(--bg-white);
 }
 
 body.dark-mode .modal-footer {
   background: #2a2a2a;
+  border-top-color: #333;
 }
 
+/* ✅ NEW: Settings Tab Navigation */
+.settings-tabs {
+  border-bottom: 2px solid var(--border);
+  margin: 0 0 20px 0;
+  padding: 0;
+  background: transparent;
+}
+
+body.dark-mode .settings-tabs {
+  border-bottom-color: #444;
+}
+
+.settings-tab-btn {
+  color: var(--medium-text);
+  border: none;
+  background: transparent;
+  padding: 15px 20px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+body.dark-mode .settings-tab-btn {
+  color: #999;
+}
+
+.settings-tab-btn:hover {
+  color: var(--primary-color);
+  background: transparent;
+}
+
+body.dark-mode .settings-tab-btn:hover {
+  color: var(--primary-color);
+}
+
+.settings-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: transparent;
+}
+
+/* ✅ NEW: Tab Content Styling */
+.settings-tab-content {
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-pane {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* ===== GENERAL TAB ===== */
+.form-label {
+  color: var(--dark-text);
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.dark-mode .form-label {
+  color: #e0e0e0;
+}
+
+.form-control,
+.form-control-lg {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 15px;
+  color: var(--dark-text);
+  background: var(--bg-white);
+  transition: all 0.2s ease;
+}
+
+.form-control-lg {
+  padding: 12px 15px;
+  font-size: 16px;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-control-lg {
+  background: #333;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.form-control:focus,
+.form-control-lg:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  background: var(--bg-white);
+  color: var(--dark-text);
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-control-lg:focus {
+  background: #3a3a3a;
+  border-color: var(--primary-color);
+  color: #e0e0e0;
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+#descCharCount {
+  font-size: 12px;
+  color: var(--light-text);
+}
+
+body.dark-mode #descCharCount {
+  color: #999;
+}
+
+/* ===== FILES TAB ===== */
 .files-list {
-  max-height: 350px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .files-list .card {
-  transition: transform 0.2s;
-  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-light);
   color: var(--dark-text);
-  border-color: var(--border);
+  transition: all 0.2s ease;
 }
 
 body.dark-mode .files-list .card {
@@ -1083,6 +1256,237 @@ body.dark-mode .files-list .card {
 
 .files-list .card:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-body {
+  padding: 15px;
+}
+
+/* ===== SECURITY TAB - GREEN THEME ===== */
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 15px;
+  margin-bottom: 0;
+}
+
+body.dark-mode .alert {
+  background: #333;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.alert-info {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: var(--primary-color);
+  color: var(--dark-text);
+}
+
+body.dark-mode .alert-info {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: var(--primary-color);
+  color: #e0e0e0;
+}
+
+.alert-info i {
+  color: var(--primary-color);
+  margin-right: 8px;
+}
+
+.alert-info strong {
+  color: var(--primary-color);
+}
+
+.alert-info p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Password Reset Form */
+.password-reset-form {
+  background: var(--bg-light);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+body.dark-mode .password-reset-form {
+  background: #333;
+  border-color: #444;
+}
+
+.password-reset-form h6 {
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+body.dark-mode .password-reset-form h6 {
+  color: #66bb6a;
+}
+
+/* Password Requirements */
+.password-strength-box {
+  background: rgba(76, 175, 80, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+body.dark-mode .password-strength-box {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.password-strength-box small {
+  color: var(--medium-text);
+  font-weight: 500;
+}
+
+body.dark-mode .password-strength-box small {
+  color: #bbb;
+}
+
+.password-requirements {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+}
+
+.password-requirements li {
+  font-size: 13px;
+  padding: 8px 0;
+  color: var(--light-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .password-requirements li {
+  color: #999;
+}
+
+.password-requirements li i {
+  font-size: 10px;
+  color: var(--light-text);
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .password-requirements li i {
+  color: #999;
+}
+
+.password-requirements li.met {
+  color: var(--primary-color);
+}
+
+body.dark-mode .password-requirements li.met {
+  color: #66bb6a;
+}
+
+.password-requirements li.met i {
+  color: var(--primary-color);
+}
+
+body.dark-mode .password-requirements li.met i {
+  color: #66bb6a;
+}
+
+/* Password Reset Alert */
+#passwordResetAlert {
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border);
+}
+
+#passwordResetAlert.alert-success {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: var(--primary-color);
+  color: var(--primary-hover);
+}
+
+body.dark-mode #passwordResetAlert.alert-success {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: var(--primary-color);
+  color: #66bb6a;
+}
+
+#passwordResetAlert.alert-danger {
+  background: rgba(244, 67, 54, 0.08);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+body.dark-mode #passwordResetAlert.alert-danger {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: var(--danger-color);
+  color: #ff5252;
+}
+
+/* Password Reset Button */
+#confirmPasswordResetBtn {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  padding: 12px 20px;
+  transition: all 0.2s ease;
+}
+
+#confirmPasswordResetBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+#confirmPasswordResetBtn:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+body.dark-mode #confirmPasswordResetBtn {
+  background: var(--primary-color);
+}
+
+body.dark-mode #confirmPasswordResetBtn:hover:not(:disabled) {
+  background: #66bb6a;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+}
+
+/* ===== MODALS ===== */
+body.dark-mode .btn-close {
+  filter: invert(1);
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background: #333;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background: #3a3a3a;
+  border-color: var(--primary-color);
+  color: #e0e0e0;
 }
 
 /* ===== TOAST ===== */
@@ -1207,6 +1611,11 @@ body.dark-mode .toast-close {
   .participant-name {
     font-size: 12px;
   }
+
+  .settings-tab-btn {
+    padding: 12px 15px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1260,6 +1669,15 @@ body.dark-mode .toast-close {
 
   .toast {
     max-width: calc(100vw - 40px);
+  }
+
+  .settings-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .settings-tab-btn {
+    white-space: nowrap;
   }
 }
 
@@ -1315,6 +1733,24 @@ body.dark-mode .toast-close {
   .modal {
     --bs-modal-margin: 10px;
   }
+
+  .message-image {
+    max-width: 100%;
+    max-height: 150px;
+  }
+
+  .modal-header .modal-title {
+    font-size: 16px;
+  }
+
+  .password-reset-form {
+    padding: 15px;
+  }
+
+  #confirmPasswordResetBtn {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
 }
 
 /* ===== DARK MODE FINAL POLISH ===== */
@@ -1328,20 +1764,10 @@ body.dark-mode .modal-header {
   border-color: #444;
 }
 
-body.dark-mode .btn-close {
-  filter: invert(1);
+body.dark-mode .modal-body {
+  background: #2a2a2a;
 }
 
-body.dark-mode .form-control,
-body.dark-mode .form-select {
-  background: #333;
-  border-color: #444;
-  color: #e0e0e0;
-}
-
-body.dark-mode .form-control:focus,
-body.dark-mode .form-select:focus {
-  background: #3a3a3a;
-  border-color: var(--primary-color);
-  color: #e0e0e0;
+body.dark-mode .modal-footer {
+  background: #2a2a2a;
 }

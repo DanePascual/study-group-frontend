@@ -89,8 +89,15 @@
           <button class="settings-btn" id="settingsBtn" title="Room settings">
             <i class="bi bi-gear"></i>
           </button>
+          <button
+            class="btn btn-outline-danger btn-sm"
+            id="leaveRoomBtn"
+            title="Leave this room"
+          >
+            <i class="bi bi-box-arrow-right"></i> Leave Room
+          </button>
           <a href="study-rooms.html" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-box-arrow-left"></i> Leave
+            <i class="bi bi-box-arrow-left"></i> Back
           </a>
         </div>
       </div>
@@ -226,8 +233,11 @@
     >
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
+          <!-- Modal Header -->
           <div class="modal-header">
-            <h5 class="modal-title" id="settingsModalLabel">Room Settings</h5>
+            <h5 class="modal-title" id="settingsModalLabel">
+              <i class="bi bi-gear"></i> Room Settings
+            </h5>
             <button
               type="button"
               class="btn-close"
@@ -235,28 +245,208 @@
               aria-label="Close"
             ></button>
           </div>
+
+          <!-- Modal Body with Tabs -->
           <div class="modal-body">
-            <div class="mb-3">
-              <label for="roomNameInput" class="form-label">Room Name</label>
-              <input type="text" class="form-control" id="roomNameInput" />
-            </div>
-            <div class="mb-3">
-              <label for="roomDescInput" class="form-label">Description</label>
-              <textarea
-                class="form-control"
-                id="roomDescInput"
-                rows="3"
-              ></textarea>
-            </div>
-            <div class="mb-3">
-              <h6>Shared Files</h6>
+            <!-- ✅ Tab Navigation -->
+            <ul class="nav nav-tabs settings-tabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link active settings-tab-btn"
+                  id="general-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#general-content"
+                  type="button"
+                  role="tab"
+                  aria-controls="general-content"
+                  aria-selected="true"
+                >
+                  <i class="bi bi-sliders"></i> General
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link settings-tab-btn"
+                  id="files-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#files-content"
+                  type="button"
+                  role="tab"
+                  aria-controls="files-content"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-file-earmark"></i> Files
+                </button>
+              </li>
+              <!-- ✅ NEW: Security Tab (Owner + Private Only) -->
+              <li
+                class="nav-item"
+                role="presentation"
+                id="security-tab-item"
+                style="display: none"
+              >
+                <button
+                  class="nav-link settings-tab-btn"
+                  id="security-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#security-content"
+                  type="button"
+                  role="tab"
+                  aria-controls="security-content"
+                  aria-selected="false"
+                >
+                  <i class="bi bi-shield-lock"></i> Security
+                </button>
+              </li>
+            </ul>
+
+            <!-- ✅ Tab Content -->
+            <div class="tab-content settings-tab-content">
+              <!-- General Tab -->
               <div
-                id="filesList"
-                class="files-list"
-                style="max-height: 300px; overflow-y: auto"
-              ></div>
+                class="tab-pane fade show active"
+                id="general-content"
+                role="tabpanel"
+                aria-labelledby="general-tab"
+              >
+                <div class="mb-3">
+                  <label for="roomNameInput" class="form-label">
+                    <i class="bi bi-chat-dots"></i> Room Name
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="roomNameInput"
+                    placeholder="Enter room name"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="roomDescInput" class="form-label">
+                    <i class="bi bi-file-text"></i> Description
+                  </label>
+                  <textarea
+                    class="form-control"
+                    id="roomDescInput"
+                    rows="4"
+                    placeholder="Enter room description"
+                    maxlength="500"
+                  ></textarea>
+                  <small class="text-muted d-block mt-1">
+                    <span id="descCharCount">(0/500)</span>
+                  </small>
+                </div>
+              </div>
+
+              <!-- Files Tab -->
+              <div
+                class="tab-pane fade"
+                id="files-content"
+                role="tabpanel"
+                aria-labelledby="files-tab"
+              >
+                <h6 class="mb-3">
+                  <i class="bi bi-file-earmark"></i> Shared Files
+                </h6>
+                <div
+                  id="filesList"
+                  class="files-list"
+                  style="max-height: 400px; overflow-y: auto"
+                ></div>
+              </div>
+
+              <!-- ✅ NEW: Security Tab -->
+              <div
+                class="tab-pane fade"
+                id="security-content"
+                role="tabpanel"
+                aria-labelledby="security-tab"
+              >
+                <!-- ✅ Password Reset Section -->
+                <div class="security-section">
+                  <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Private Room Protection</strong>
+                    <p class="mb-0 mt-2">
+                      Reset the password for this private room. All members will
+                      need to use the new password to access the room.
+                    </p>
+                  </div>
+
+                  <div class="password-reset-form">
+                    <h6 class="mb-3">
+                      <i class="bi bi-lock"></i> Reset Room Password
+                    </h6>
+
+                    <div class="mb-3">
+                      <label for="newPasswordInput" class="form-label">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="newPasswordInput"
+                        placeholder="Enter new password"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="confirmPasswordInput" class="form-label">
+                        Confirm Password
+                      </label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="confirmPasswordInput"
+                        placeholder="Confirm password"
+                      />
+                    </div>
+
+                    <!-- ✅ Password Requirements -->
+                    <div class="password-strength-box mb-3">
+                      <small class="form-text text-muted d-block mb-2">
+                        <strong>Password Requirements:</strong>
+                      </small>
+                      <ul class="password-requirements">
+                        <li id="req-length">
+                          <i class="bi bi-circle"></i> At least 8 characters
+                        </li>
+                        <li id="req-upper">
+                          <i class="bi bi-circle"></i> One uppercase letter
+                          (A-Z)
+                        </li>
+                        <li id="req-lower">
+                          <i class="bi bi-circle"></i> One lowercase letter
+                          (a-z)
+                        </li>
+                        <li id="req-number">
+                          <i class="bi bi-circle"></i> One number (0-9)
+                        </li>
+                      </ul>
+                    </div>
+
+                    <!-- ✅ Alert for success/error -->
+                    <div
+                      id="passwordResetAlert"
+                      class="alert"
+                      role="alert"
+                      style="display: none"
+                    ></div>
+
+                    <button
+                      type="button"
+                      class="btn btn-primary w-100"
+                      id="confirmPasswordResetBtn"
+                      disabled
+                    >
+                      <i class="bi bi-check-circle"></i> Reset Password
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- Modal Footer -->
           <div class="modal-footer">
             <button
               type="button"
@@ -274,7 +464,7 @@
               <i class="bi bi-trash"></i> Delete Room
             </button>
             <button type="button" class="btn btn-primary" id="saveSettingsBtn">
-              Save Changes
+              <i class="bi bi-check-circle"></i> Save Changes
             </button>
           </div>
         </div>
