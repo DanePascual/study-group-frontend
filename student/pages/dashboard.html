@@ -212,8 +212,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="privateRoomPasswordTitle">
-              <i class="bi bi-lock-fill" style="margin-right: 10px"></i>
-              Enter Room Password
+              <i class="bi bi-lock-fill"></i> Private Room Access
             </h5>
             <button
               type="button"
@@ -223,22 +222,39 @@
             ></button>
           </div>
           <div class="modal-body">
-            <p>This is a private room. Please enter the password to join.</p>
-            <p style="font-weight: 600; color: #333; margin-bottom: 15px">
-              Room: <span id="privateRoomName"></span>
+            <p>
+              This is a private study room. Please enter the password to access
+              <strong id="privateRoomName">this room</strong>.
             </p>
             <div class="form-group">
               <label class="form-label" for="privateRoomPassword"
-                >Password</label
+                >Room Password</label
               >
-              <input
-                type="password"
-                class="form-input"
-                id="privateRoomPassword"
-                placeholder="Enter password..."
-                required
-              />
+              <div class="password-input-wrapper">
+                <i class="bi bi-lock input-icon"></i>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="privateRoomPassword"
+                  placeholder="Enter password"
+                  autocomplete="new-password"
+                  spellcheck="false"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle-btn"
+                  id="accessPasswordToggleBtn"
+                  aria-label="Toggle password visibility"
+                  title="Show/Hide password"
+                >
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
             </div>
+            <small class="text-muted">
+              You must have the correct password to enter this private room.
+            </small>
           </div>
           <div class="modal-footer">
             <button

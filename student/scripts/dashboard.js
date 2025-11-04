@@ -5,6 +5,7 @@
 // - Password modal for private rooms
 // - Smart membership checking
 // - Consistent card layout with study-rooms.js
+// - Lock icon + password input + eye toggle button
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -176,6 +177,9 @@ function initDashboardUI() {
   // Initialize password modal
   initPasswordModal();
 
+  // Initialize password toggle
+  initializePasswordToggles();
+
   initUIEvents();
   fetchAndRenderRooms();
   fetchTodos();
@@ -221,6 +225,32 @@ function performSearch(query) {
         item.description.toLowerCase().includes(query.toLowerCase()))
   );
   console.log("Search results for:", query, filtered);
+}
+
+// ===== PASSWORD VISIBILITY TOGGLE =====
+function initializePasswordToggles() {
+  const accessPasswordToggleBtn = document.getElementById(
+    "accessPasswordToggleBtn"
+  );
+  const privateRoomPassword = document.getElementById("privateRoomPassword");
+
+  if (accessPasswordToggleBtn && privateRoomPassword) {
+    accessPasswordToggleBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      togglePasswordVisibility(privateRoomPassword, accessPasswordToggleBtn);
+    });
+  }
+}
+
+function togglePasswordVisibility(inputElement, toggleButton) {
+  const isPassword = inputElement.type === "password";
+  inputElement.type = isPassword ? "text" : "password";
+
+  const icon = toggleButton.querySelector("i");
+  if (icon) {
+    icon.classList.toggle("bi-eye");
+    icon.classList.toggle("bi-eye-slash");
+  }
 }
 
 // ===== SECURITY: Utilities =====
@@ -284,6 +314,17 @@ function openPrivateRoomPasswordModal(roomId, roomName) {
     const passwordInput = document.getElementById("privateRoomPassword");
     if (passwordInput) {
       passwordInput.value = "";
+      passwordInput.type = "password";
+    }
+
+    // Reset toggle button to show eye icon
+    const toggleBtn = document.getElementById("accessPasswordToggleBtn");
+    if (toggleBtn) {
+      const icon = toggleBtn.querySelector("i");
+      if (icon) {
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+      }
     }
 
     pendingPrivateRoomId = roomId;

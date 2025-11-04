@@ -1,3 +1,34 @@
+/* ===== COMPLETELY HIDE BROWSER PASSWORD ICONS ===== */
+input[type="password"] {
+  -webkit-text-security: disc;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-outer-spin-button,
+input[type="password"]::-webkit-inner-spin-button,
+input[type="password"]::-webkit-textfield-decoration-container,
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Override Bootstrap's password field defaults */
+.form-control[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
+.password-input-wrapper
+  input[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
+#privateRoomPasswordModal
+  input[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
 :root {
   --primary-color: #4caf50;
   --primary-hover: #388e3c;
@@ -508,7 +539,6 @@ body.dark-mode .modal-footer {
   font-weight: 600;
   color: var(--dark-text);
   margin-bottom: 5px;
-  /* Allow text to wrap naturally */
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
@@ -521,7 +551,6 @@ body.dark-mode .modal-footer {
   font-size: 13px;
   color: var(--medium-text);
   line-height: 1.5;
-  /* Allow text to wrap naturally */
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
@@ -1309,10 +1338,6 @@ body.dark-mode .logout-message-content {
   color: #333;
 }
 
-body.dark-mode .modal-body p {
-  color: #e0e0e0;
-}
-
 body.dark-mode .btn-secondary {
   background: #333;
   border-color: #333;
@@ -1323,4 +1348,263 @@ body.dark-mode .btn-secondary:hover {
   background: #444;
   border-color: #444;
   color: #e0e0e0;
+}
+
+/* ===== PRIVATE ROOM PASSWORD MODAL - MATCH STUDY-ROOMS STYLE ===== */
+#privateRoomPasswordModal .modal-dialog {
+  max-width: 500px;
+}
+
+#privateRoomPasswordModal .modal-content {
+  background: #2a2a2a;
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+#privateRoomPasswordModal .modal-header {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  color: white;
+  padding: 20px 25px;
+  border-bottom: none;
+}
+
+#privateRoomPasswordModal .modal-header .btn-close {
+  filter: invert(1) brightness(1.2);
+  opacity: 0.9;
+}
+
+#privateRoomPasswordModal .modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+#privateRoomPasswordModal .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: white;
+  font-size: 18px;
+}
+
+#privateRoomPasswordModal .modal-body {
+  background: #2a2a2a;
+  padding: 25px;
+}
+
+#privateRoomPasswordModal .modal-body p {
+  color: #e0e0e0 !important;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+#privateRoomPasswordModal .form-group {
+  margin-bottom: 20px;
+}
+
+#privateRoomPasswordModal .form-label {
+  color: #e0e0e0 !important;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: block;
+  font-size: 14px;
+}
+
+/* ===== PASSWORD INPUT WRAPPER WITH TOGGLE BUTTON ===== */
+#privateRoomPasswordModal .password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 2px solid #555;
+  border-radius: 10px;
+  background: #3a3a3a;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+#privateRoomPasswordModal .password-input-wrapper:focus-within {
+  border-color: #4caf50;
+  background: #404040;
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+}
+
+#privateRoomPasswordModal .password-input-wrapper .form-control {
+  border: none;
+  padding: 12px 45px 12px 45px;
+  flex: 1;
+  background: transparent;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+#privateRoomPasswordModal .password-input-wrapper .form-control:focus {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  border: none;
+}
+
+#privateRoomPasswordModal .password-input-wrapper .form-control::placeholder {
+  color: #999;
+}
+
+/* Lock icon for password input */
+#privateRoomPasswordModal .input-icon {
+  position: absolute;
+  left: 15px;
+  color: #999;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* Password toggle button */
+#privateRoomPasswordModal .password-toggle-btn {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+#privateRoomPasswordModal .password-toggle-btn:hover {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.15);
+}
+
+#privateRoomPasswordModal .password-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+#privateRoomPasswordModal .modal-body small {
+  color: #bbb !important;
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+#privateRoomPasswordModal .modal-footer {
+  background: #2a2a2a;
+  border-top: 1px solid #444;
+  padding: 15px 25px 25px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+#privateRoomPasswordModal .btn-secondary {
+  background: transparent;
+  border: 1px solid #555;
+  color: #bbb;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+#privateRoomPasswordModal .btn-secondary:hover {
+  background: #333;
+  border-color: #777;
+  color: #e0e0e0;
+}
+
+#privateRoomPasswordModal .btn-primary {
+  background: #4caf50;
+  border: none;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#privateRoomPasswordModal .btn-primary:hover {
+  background: #66bb6a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+}
+
+#privateRoomPasswordModal .btn-primary:disabled {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  #privateRoomPasswordModal .modal-dialog {
+    margin: 12px;
+  }
+
+  #privateRoomPasswordModal .modal-header {
+    padding: 18px 20px;
+  }
+
+  #privateRoomPasswordModal .modal-body {
+    padding: 20px;
+  }
+
+  #privateRoomPasswordModal .modal-body p {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  #privateRoomPasswordModal .form-label {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  #privateRoomPasswordModal .password-input-wrapper .form-control {
+    padding: 12px 45px 12px 45px;
+    font-size: 14px;
+  }
+
+  #privateRoomPasswordModal .input-icon {
+    left: 12px;
+    font-size: 14px;
+  }
+
+  #privateRoomPasswordModal .password-toggle-btn {
+    right: 12px;
+    padding: 5px 8px;
+    font-size: 16px;
+  }
+
+  #privateRoomPasswordModal .modal-body small {
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  #privateRoomPasswordModal .modal-footer {
+    padding: 12px 20px 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  #privateRoomPasswordModal .btn-secondary,
+  #privateRoomPasswordModal .btn-primary {
+    font-size: 13px;
+    padding: 9px 16px;
+  }
+
+  #privateRoomPasswordModal .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
 }
