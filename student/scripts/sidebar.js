@@ -9,6 +9,7 @@
 
 import { onAuthStateChanged, db } from "../../config/firebase.js";
 import { authFetch } from "./apiClient.js";
+import { adminApiUrl } from "../../config/appConfig.js";
 import {
   doc,
   getDoc,
@@ -136,7 +137,8 @@ async function checkAndShowAdminLink(user) {
     const token = await user.getIdToken(true);
     console.log("[sidebar] Got user token, checking admin dashboard...");
 
-    const response = await fetch("http://localhost:5000/api/admin/dashboard", {
+    // ✅ FIXED: Use adminApiUrl from appConfig instead of hardcoded localhost
+    const response = await fetch(adminApiUrl("/api/admin/dashboard"), {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
