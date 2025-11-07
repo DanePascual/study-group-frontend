@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (attempts > 100) {
         clearInterval(checkAdminInterval);
         console.error("[admin-users] Admin user not ready after 10 seconds");
-        window.showError("Failed to initialize admin session");
+        console.error("[admin-users] Failed to initialize admin session");
       }
     }
   }, 100);
@@ -177,7 +177,9 @@ async function loadUsers() {
     updatePaginationInfo();
   } catch (err) {
     console.error("[admin-users] Error:", err.message);
-    window.showError(`Failed to load users: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load users: ${err.message}`);
+    }
     document.getElementById("usersList").innerHTML =
       '<tr><td colspan="6" class="error-message">Error loading users. Please try again.</td></tr>';
   }
@@ -313,7 +315,9 @@ async function openViewUserModal(uid) {
 
     const user = allUsers.find((u) => u.uid === uid);
     if (!user) {
-      window.showError("User not found");
+      if (window.showError) {
+        window.showError("User not found");
+      }
       return;
     }
 
@@ -361,7 +365,9 @@ async function openViewUserModal(uid) {
     openModal("viewUserModal");
   } catch (err) {
     console.error("[admin-users] Error:", err.message);
-    window.showError(`Failed to load user details: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load user details: ${err.message}`);
+    }
   }
 }
 
@@ -379,7 +385,9 @@ async function confirmBanUser() {
   const reason = document.getElementById("banReason").value.trim();
 
   if (!reason) {
-    window.showError("Please enter a ban reason");
+    if (window.showError) {
+      window.showError("Please enter a ban reason");
+    }
     return;
   }
 
@@ -398,14 +406,18 @@ async function confirmBanUser() {
     );
 
     console.log("[admin-users] User banned:", response);
-    window.showSuccess(`User banned successfully. Reason: ${reason}`);
+    if (window.showSuccess) {
+      window.showSuccess(`User banned successfully. Reason: ${reason}`);
+    }
     closeModal("banUserModal");
     currentBanningUserId = null;
     currentPage = 1;
     loadUsers();
   } catch (err) {
     console.error("[admin-users] Error:", err.message);
-    window.showError(`Failed to ban user: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to ban user: ${err.message}`);
+    }
   }
 }
 
@@ -429,14 +441,18 @@ async function confirmUnbanUser() {
     );
 
     console.log("[admin-users] User unbanned:", response);
-    window.showSuccess("User unbanned successfully");
+    if (window.showSuccess) {
+      window.showSuccess("User unbanned successfully");
+    }
     closeModal("unbanConfirmModal");
     currentUnbanningUserId = null;
     currentPage = 1;
     loadUsers();
   } catch (err) {
     console.error("[admin-users] Error:", err.message);
-    window.showError(`Failed to unban user: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to unban user: ${err.message}`);
+    }
   }
 }
 
