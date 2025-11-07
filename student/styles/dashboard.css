@@ -1608,3 +1608,19 @@ body.dark-mode .btn-secondary:hover {
     justify-content: center;
   }
 }
+
+/* Admin Link Styling */
+.admin-link {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  padding: 10px 20px !important;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.admin-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+  background: linear-gradient(135deg, #5558e3, #7c3aed);
+}

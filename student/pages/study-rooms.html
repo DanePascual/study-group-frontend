@@ -23,30 +23,40 @@
         </div>
       </div>
 
-      <nav class="sidebar-menu">
+      <nav class="sidebar-menu" role="navigation">
         <a href="dashboard.html" class="sidebar-item">
           <i class="bi bi-house"></i>
-          Dashboard
+          <span>Dashboard</span>
         </a>
         <a href="profile.html" class="sidebar-item">
           <i class="bi bi-person"></i>
-          Profile
+          <span>Profile</span>
         </a>
         <a href="study-rooms.html" class="sidebar-item active">
           <i class="bi bi-door-open"></i>
-          Study Rooms
+          <span>Study Rooms</span>
         </a>
         <a href="resources.html" class="sidebar-item">
           <i class="bi bi-folder"></i>
-          Resources
+          <span>Resources</span>
         </a>
         <a href="discussion.html" class="sidebar-item">
           <i class="bi bi-chat-dots"></i>
-          Discussion Forum
+          <span>Discussion Forum</span>
         </a>
         <a href="report.html" class="sidebar-item">
           <i class="bi bi-flag"></i>
-          Report
+          <span>Report</span>
+        </a>
+        <!-- Admin Panel Link (only visible to admins) -->
+        <a
+          href="../../admin/index.html"
+          id="adminPanelLink"
+          class="sidebar-item admin-item"
+          style="display: none"
+        >
+          <i class="bi bi-shield-check"></i>
+          <span>Admin Panel</span>
         </a>
       </nav>
 

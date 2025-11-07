@@ -1,11 +1,6 @@
 // frontend/student/scripts/dashboard.js
+// ✅ CLEANED: Removed admin panel check (moved to sidebar.js)
 // ✅ UPDATED: Active Study Rooms now match study-rooms.js design
-// - Privacy badges (Public/Private)
-// - Full text wrapping (no tooltips, no truncation)
-// - Password modal for private rooms
-// - Smart membership checking
-// - Consistent card layout with study-rooms.js
-// - Lock icon + password input + eye toggle button
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -27,6 +22,63 @@ let pendingPrivateRoomId = null;
 
 onAuthStateChanged(async (user) => {
   if (user) {
+    // ===== Check if user is banned =====
+    try {
+      console.log("[dashboard] Checking ban status for user:", user.uid);
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+
+        if (userData.isBanned === true) {
+          console.warn("[dashboard] ❌ User is banned!");
+          console.warn("[dashboard] Ban reason:", userData.bannedReason);
+          console.warn("[dashboard] Banned at:", userData.bannedAt);
+
+          // Show error message
+          const errorDiv = document.createElement("div");
+          errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ef4444;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 500px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+          `;
+          errorDiv.innerHTML = `
+            🚫 Your account has been banned and you cannot access this page. You are being logged out...
+          `;
+          document.body.appendChild(errorDiv);
+
+          // Sign out
+          await auth.signOut();
+          sessionStorage.removeItem("idToken");
+          sessionStorage.removeItem("uid");
+
+          // Redirect to login
+          setTimeout(() => {
+            window.location.href = "login.html";
+          }, 2000);
+
+          return;
+        }
+      }
+
+      console.log("[dashboard] ✅ User is not banned - access allowed");
+    } catch (err) {
+      console.error("[dashboard] Error checking ban status:", err);
+      // Continue anyway on error
+    }
+
     // Fetch user program from Firestore (keyed by UID)
     let userProgram = "";
     try {
@@ -696,11 +748,6 @@ function initUIEvents() {
         handlePrivateRoomPasswordSubmit();
       }
     });
-  }
-
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    console.log("Logout button detected - using sidebar.js logout function");
   }
 }
 

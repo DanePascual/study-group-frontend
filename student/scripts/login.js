@@ -1,12 +1,22 @@
 // frontend/student/scripts/login.js
 // FIXED: Remove all Firebase error messages, show only user-friendly messages
+// ✅ NEW: Ban check after successful login
 
-import { auth, getIdToken, onAuthStateChanged } from "../../config/firebase.js";
+import {
+  auth,
+  db,
+  getIdToken,
+  onAuthStateChanged,
+} from "../../config/firebase.js";
 import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import {
+  getDoc,
+  doc,
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
 // ===== UI Elements =====
 const loginForm = document.getElementById("loginForm");
@@ -62,6 +72,38 @@ function setLoginLoading(loading) {
 function validateEmail(email) {
   const requiredDomain = "@paterostechnologicalcollege.edu.ph";
   return email && email.toLowerCase().endsWith(requiredDomain.toLowerCase());
+}
+
+// ===== CHECK IF USER IS BANNED =====
+async function checkUserBanned(uid) {
+  try {
+    console.log("[login] Checking ban status for user:", uid);
+
+    // Get user from Firestore
+    const userDocSnap = await getDoc(doc(db, "users", uid));
+
+    if (!userDocSnap.exists()) {
+      console.warn("[login] User document not found");
+      return false;
+    }
+
+    const userData = userDocSnap.data();
+    const isBanned = userData.isBanned === true;
+
+    if (isBanned) {
+      console.warn(`[login] ❌ User ${uid} is banned`);
+      console.warn("[login] Ban reason:", userData.bannedReason || "No reason");
+      console.warn("[login] Banned at:", userData.bannedAt || "Unknown");
+    } else {
+      console.log(`[login] ✅ User ${uid} is not banned - access allowed`);
+    }
+
+    return isBanned;
+  } catch (err) {
+    console.error("[login] Error checking ban status:", err);
+    // If error checking ban status, allow login (fail open)
+    return false;
+  }
 }
 
 // ===== Real-time Email Validation =====
@@ -166,6 +208,25 @@ loginForm.addEventListener("submit", async (e) => {
       }
     }
 
+    // ===== NEW: Check if user is banned =====
+    console.log("[login] Checking if user is banned...");
+    const isBanned = await checkUserBanned(userCredential.user.uid);
+
+    if (isBanned) {
+      setLoginLoading(false);
+      showInlineError(
+        "🚫 <strong>Account Banned</strong><br/>Your account has been suspended and you cannot log in.<br/><br/>💡 <strong>What to do:</strong> Contact support if you believe this is an error."
+      );
+      // Sign out the user
+      await auth.signOut();
+      sessionStorage.removeItem("idToken");
+      sessionStorage.removeItem("uid");
+      console.warn("[login] Banned user signed out");
+      return;
+    }
+
+    // If not banned, continue
+    console.log("[login] ✅ User passed ban check - proceeding to dashboard");
     showSuccessAlert();
     setTimeout(() => {
       window.location.href = "../pages/dashboard.html";

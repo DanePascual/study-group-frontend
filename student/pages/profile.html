@@ -121,7 +121,7 @@
           StudyGroup
         </div>
       </div>
-      <nav class="sidebar-menu">
+      <nav class="sidebar-menu" role="navigation">
         <a href="dashboard.html" class="sidebar-item">
           <i class="bi bi-house"></i>
           <span>Dashboard</span>
@@ -145,6 +145,16 @@
         <a href="report.html" class="sidebar-item">
           <i class="bi bi-flag"></i>
           <span>Report</span>
+        </a>
+        <!-- Admin Panel Link (only visible to admins) -->
+        <a
+          href="../../admin/index.html"
+          id="adminPanelLink"
+          class="sidebar-item admin-item"
+          style="display: none"
+        >
+          <i class="bi bi-shield-check"></i>
+          <span>Admin Panel</span>
         </a>
       </nav>
       <div class="sidebar-footer">
@@ -345,7 +355,7 @@
         </div>
 
         <div class="profile-footer" id="lastUpdated">
-          Last updated: 2025-11-03 08:12:09 UTC
+          Last updated: 2025-11-07 17:32:46 UTC
         </div>
       </div>
     </div>

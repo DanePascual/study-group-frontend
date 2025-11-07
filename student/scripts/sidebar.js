@@ -5,9 +5,14 @@
 // - fast-path cached profile render + profile:updated listener
 // - auth listener using authFetch for authoritative profile
 // - idempotent init guard so module can be included on every page safely
+// - admin panel link visibility check
 
-import { onAuthStateChanged } from "../../config/firebase.js";
+import { onAuthStateChanged, db } from "../../config/firebase.js";
 import { authFetch } from "./apiClient.js";
+import {
+  doc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
 /* ----------------------- Helpers ----------------------- */
 const el = (id) => document.getElementById(id);
@@ -31,16 +36,41 @@ function injectSidebarCss() {
 }
 
 /* ----------------------- Theme (global) ----------------------- */
+function applyThemeImmediately() {
+  try {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    const body = document.body;
+    const html = document.documentElement;
+
+    if (savedTheme === "dark") {
+      body.classList.add("dark-mode");
+      html.setAttribute("data-theme", "dark");
+    } else {
+      body.classList.remove("dark-mode");
+      html.setAttribute("data-theme", "light");
+    }
+  } catch (e) {
+    console.warn(
+      "applyThemeImmediately error:",
+      e && e.message ? e.message : e
+    );
+  }
+}
+
 function applyInitialTheme() {
   try {
     const themeToggle = el("themeToggle");
     const savedTheme = localStorage.getItem("theme") || "light";
     const body = document.body;
+    const html = document.documentElement;
+
     if (savedTheme === "dark") {
       body.classList.add("dark-mode");
+      html.setAttribute("data-theme", "dark");
       if (themeToggle) themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
     } else {
       body.classList.remove("dark-mode");
+      html.setAttribute("data-theme", "light");
       if (themeToggle) themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
     }
   } catch (e) {
@@ -50,15 +80,19 @@ function applyInitialTheme() {
 
 function setTheme(isDark) {
   const body = document.body;
+  const html = document.documentElement;
   const themeToggle = el("themeToggle");
+
   if (isDark) {
     body.classList.add("dark-mode");
+    html.setAttribute("data-theme", "dark");
     if (themeToggle) themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
     try {
       localStorage.setItem("theme", "dark");
     } catch {}
   } else {
     body.classList.remove("dark-mode");
+    html.setAttribute("data-theme", "light");
     if (themeToggle) themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
     try {
       localStorage.setItem("theme", "light");
@@ -83,9 +117,50 @@ function wireThemeToggle() {
   window.addEventListener("storage", (e) => {
     if (!e.key) return;
     if (e.key === "theme" || e.key === "theme-sync") {
-      applyInitialTheme();
+      applyThemeImmediately();
     }
   });
+}
+
+/* ----------------------- Admin Panel Visibility ----------------------- */
+async function checkAndShowAdminLink(user) {
+  try {
+    console.log("[sidebar] Checking admin status for user:", user.uid);
+
+    const adminLink = el("adminPanelLink");
+    if (!adminLink) {
+      console.log("[sidebar] Admin link element not found in sidebar");
+      return;
+    }
+
+    const token = await user.getIdToken(true);
+    console.log("[sidebar] Got user token, checking admin dashboard...");
+
+    const response = await fetch("http://localhost:5000/api/admin/dashboard", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("[sidebar] Admin dashboard response status:", response.status);
+
+    if (response.ok) {
+      console.log("[sidebar] ✅ User is admin - showing admin panel link");
+      adminLink.style.display = "block";
+    } else if (response.status === 403) {
+      console.log("[sidebar] ℹ️ User is not an admin (403 Forbidden)");
+      adminLink.style.display = "none";
+    } else {
+      console.warn(`[sidebar] ⚠️ Unexpected status: ${response.status}`);
+      adminLink.style.display = "none";
+    }
+  } catch (err) {
+    console.error("[sidebar] ❌ Admin check failed:", err.message);
+    const adminLink = el("adminPanelLink");
+    if (adminLink) adminLink.style.display = "none";
+  }
 }
 
 /* ----------------------- Sidebar UI / Profile ----------------------- */
@@ -218,13 +293,20 @@ function setupAuthListener() {
     if (user) {
       applyCachedProfileIfAny();
       fetchAndUpdateSidebarProfile(user).catch(() => {});
+
+      // ===== NEW: Check admin status =====
+      checkAndShowAdminLink(user).catch(() => {});
     } else {
       const nameNode = el("sidebarName");
       const avatarNode = el("sidebarAvatar");
       const courseNode = el("sidebarCourse");
+      const adminLink = el("adminPanelLink");
+
       if (nameNode) nameNode.textContent = "Not signed in";
       if (avatarNode) avatarNode.textContent = "";
       if (courseNode) courseNode.textContent = "";
+      if (adminLink) adminLink.style.display = "none";
+
       try {
         localStorage.removeItem("userProfile");
       } catch {}
