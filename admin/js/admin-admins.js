@@ -5,6 +5,13 @@ let allAdmins = [];
 let activeModalCustomSelect = null;
 let pendingAction = null;
 
+// ===== LISTEN: Wait for adminUser to be available =====
+let adminUserReady = false;
+window.addEventListener("adminUserReady", () => {
+  adminUserReady = true;
+  console.log("[admin-admins] ✅ adminUser is ready");
+});
+
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-admins] Initializing...");

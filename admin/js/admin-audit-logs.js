@@ -10,6 +10,13 @@ let allLogs = [];
 let activeCustomSelect = null;
 let userCache = {}; // Cache to store user data
 
+// ===== LISTEN: Wait for adminUser to be available =====
+let adminUserReady = false;
+window.addEventListener("adminUserReady", () => {
+  adminUserReady = true;
+  console.log("[admin-audit-logs] ✅ adminUser is ready");
+});
+
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-audit-logs] Initializing...");

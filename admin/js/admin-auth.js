@@ -3,7 +3,8 @@
 
 import { adminApiUrl } from "../../config/appConfig.js";
 
-let adminUser = null;
+// ===== GLOBAL: Make adminUser globally available =====
+window.adminUser = null;
 
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
@@ -64,8 +65,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         throw new Error("Admin data not found in response");
       }
 
-      // Set admin user with all info including role
-      adminUser = {
+      // ===== GLOBAL: Set global adminUser =====
+      window.adminUser = {
         uid: user.uid,
         email: user.email,
         name: user.displayName || dashboardData.admin.name || "Admin",
@@ -76,12 +77,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       };
 
       console.log("[admin-auth] ✅ Admin user authenticated:", {
-        uid: adminUser.uid,
-        email: adminUser.email,
-        name: adminUser.name,
-        role: adminUser.role,
-        status: adminUser.status,
+        uid: window.adminUser.uid,
+        email: window.adminUser.email,
+        name: window.adminUser.name,
+        role: window.adminUser.role,
+        status: window.adminUser.status,
       });
+
+      // ===== BROADCAST: Dispatch adminUserReady event =====
+      window.dispatchEvent(new Event("adminUserReady"));
+      console.log("[admin-auth] ✅ Broadcasting adminUserReady event");
 
       // Display admin info
       updateAdminDisplay();
@@ -108,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ===== Check page-specific access =====
 function checkPageAccess() {
-  if (!adminUser) {
+  if (!window.adminUser) {
     console.warn("[admin-auth] adminUser not set, cannot check page access");
     return false;
   }
@@ -116,7 +121,7 @@ function checkPageAccess() {
   const currentPath = window.location.pathname;
   console.log("[admin-auth] Checking page access...");
   console.log("[admin-auth] Current path:", currentPath);
-  console.log("[admin-auth] User role:", adminUser.role);
+  console.log("[admin-auth] User role:", window.adminUser.role);
 
   // Pages restricted to superadmin only
   const superadminOnlyPages = [
@@ -136,12 +141,12 @@ function checkPageAccess() {
 
   if (isSuperadminPage) {
     console.log("[admin-auth] This is a superadmin-only page");
-    console.log("[admin-auth] User role:", adminUser.role);
+    console.log("[admin-auth] User role:", window.adminUser.role);
 
-    if (adminUser.role !== "superadmin") {
+    if (window.adminUser.role !== "superadmin") {
       console.warn(
         "[admin-auth] ❌ Access denied - user role is:",
-        adminUser.role
+        window.adminUser.role
       );
       showAccessDeniedModal();
       return false;
@@ -195,7 +200,7 @@ function updateAdminDisplay() {
   const adminNameElements = document.querySelectorAll("#adminName");
   const welcomeNameElement = document.getElementById("welcomeName");
 
-  const displayName = adminUser.name || adminUser.email;
+  const displayName = window.adminUser.name || window.adminUser.email;
 
   adminNameElements.forEach((el) => {
     el.textContent = displayName;
@@ -245,10 +250,10 @@ function setupLeaveAdminButton() {
 
 // ===== Get admin token =====
 async function getAdminToken() {
-  if (!adminUser) {
+  if (!window.adminUser) {
     throw new Error("Admin user not authenticated");
   }
-  return adminUser.token;
+  return window.adminUser.token;
 }
 
 // ===== API Helper =====

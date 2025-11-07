@@ -10,6 +10,13 @@ let currentUnbanningUserId = null;
 let allUsers = [];
 let activeCustomSelect = null;
 
+// ===== LISTEN: Wait for adminUser to be available =====
+let adminUserReady = false;
+window.addEventListener("adminUserReady", () => {
+  adminUserReady = true;
+  console.log("[admin-users] ✅ adminUser is ready");
+});
+
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-users] Initializing...");

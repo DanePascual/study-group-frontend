@@ -13,6 +13,13 @@ let currentViewingReportId = null;
 let activeCustomSelect = null;
 let activeModalCustomSelect = null;
 
+// ===== LISTEN: Wait for adminUser to be available =====
+let adminUserReady = false;
+window.addEventListener("adminUserReady", () => {
+  adminUserReady = true;
+  console.log("[admin-reports] ✅ adminUser is ready");
+});
+
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-reports] Initializing...");

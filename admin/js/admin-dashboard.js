@@ -3,6 +3,13 @@
 
 let currentPage = 1;
 
+// ===== LISTEN: Wait for adminUser to be available =====
+let adminUserReady = false;
+window.addEventListener("adminUserReady", () => {
+  adminUserReady = true;
+  console.log("[admin-dashboard] ✅ adminUser is ready");
+});
+
 // ===== Initialize on page load =====
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-dashboard] Initializing...");
@@ -127,4 +134,4 @@ function getActionBadgeClass(action) {
   return "badge-default";
 }
 
-console.log("[admin-dashboard] Module loaded");
+console.log("[admin-dashboard] Module loaded ✅");
