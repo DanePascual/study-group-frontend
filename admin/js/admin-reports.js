@@ -24,17 +24,19 @@ window.addEventListener("adminUserReady", () => {
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-reports] Initializing...");
 
+  // Setup event listeners immediately
+  setupEventListeners();
+
   // Wait for admin user to be set
   let attempts = 0;
   const checkAdminInterval = setInterval(() => {
     attempts++;
     if (window.adminUser) {
       clearInterval(checkAdminInterval);
-      setupEventListeners();
       loadReports();
-    } else if (attempts > 50) {
+    } else if (attempts > 100) {
       clearInterval(checkAdminInterval);
-      console.error("[admin-reports] Admin user not loaded");
+      console.error("[admin-reports] Admin user not ready after 10 seconds");
     }
   }, 100);
 });
@@ -223,7 +225,9 @@ async function loadReports() {
     updatePaginationInfo();
   } catch (err) {
     console.error("[admin-reports] Error:", err.message);
-    window.showError(`Failed to load reports: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load reports: ${err.message}`);
+    }
     document.getElementById("reportsList").innerHTML =
       '<tr><td colspan="6" class="error-message">Error loading reports. Please try again.</td></tr>';
   }
@@ -415,7 +419,9 @@ async function viewReport(reportId) {
 
     const report = allReports.find((r) => r.id === reportId);
     if (!report) {
-      window.showError("Report not found");
+      if (window.showError) {
+        window.showError("Report not found");
+      }
       return;
     }
 
@@ -480,7 +486,9 @@ async function viewReport(reportId) {
     openModal("viewReportModal");
   } catch (err) {
     console.error("[admin-reports] Error:", err.message);
-    window.showError(`Failed to load report details: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load report details: ${err.message}`);
+    }
   }
 }
 
@@ -491,7 +499,9 @@ async function viewReportAndUpdate(reportId) {
 
     const report = allReports.find((r) => r.id === reportId);
     if (!report) {
-      window.showError("Report not found");
+      if (window.showError) {
+        window.showError("Report not found");
+      }
       return;
     }
 
@@ -521,20 +531,26 @@ async function viewReportAndUpdate(reportId) {
     openModal("updateReportModal");
   } catch (err) {
     console.error("[admin-reports] Error:", err.message);
-    window.showError(`Failed to update report: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to update report: ${err.message}`);
+    }
   }
 }
 
 // ===== Open update report modal =====
 function openUpdateReportModal() {
   if (!currentViewingReportId) {
-    window.showError("No report selected");
+    if (window.showError) {
+      window.showError("No report selected");
+    }
     return;
   }
 
   const report = allReports.find((r) => r.id === currentViewingReportId);
   if (!report) {
-    window.showError("Report not found");
+    if (window.showError) {
+      window.showError("Report not found");
+    }
     return;
   }
 
@@ -569,7 +585,9 @@ function openUpdateReportModal() {
 async function confirmUpdateReportStatus() {
   try {
     if (!currentViewingReportId) {
-      window.showError("No report selected");
+      if (window.showError) {
+        window.showError("No report selected");
+      }
       return;
     }
 
@@ -577,7 +595,9 @@ async function confirmUpdateReportStatus() {
     const reason = document.getElementById("updateReason").value.trim();
 
     if (!newStatus) {
-      window.showError("Please select a new status");
+      if (window.showError) {
+        window.showError("Please select a new status");
+      }
       return;
     }
 
@@ -604,9 +624,11 @@ async function confirmUpdateReportStatus() {
       report.status = newStatus;
     }
 
-    window.showSuccess(
-      `Report status updated to ${capitalizeFirst(newStatus)}`
-    );
+    if (window.showSuccess) {
+      window.showSuccess(
+        `Report status updated to ${capitalizeFirst(newStatus)}`
+      );
+    }
     closeModal("updateReportModal");
 
     // Reload to show updated status
@@ -616,7 +638,9 @@ async function confirmUpdateReportStatus() {
     }, 500);
   } catch (err) {
     console.error("[admin-reports] Error:", err.message);
-    window.showError(`Failed to update report status: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to update report status: ${err.message}`);
+    }
   }
 }
 
@@ -699,5 +723,7 @@ window.toggleCustomSelect = toggleCustomSelect;
 window.selectCustomOption = selectCustomOption;
 window.toggleModalCustomSelect = toggleModalCustomSelect;
 window.selectModalCustomOption = selectModalCustomOption;
+window.closeModal = closeModal;
+window.openModal = openModal;
 
 console.log("[admin-reports] Module loaded ✅");

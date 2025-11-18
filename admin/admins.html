@@ -139,6 +139,9 @@
             />
           </div>
 
+          <!-- HIDDEN INPUT FOR FORM VALUE -->
+          <input type="hidden" id="promoteRoleValue" value="" />
+
           <div class="form-group">
             <label for="promoteRole">Role</label>
             <div class="custom-select-wrapper-modal">
@@ -188,7 +191,6 @@
                 </div>
               </div>
             </div>
-            <input type="hidden" id="promoteRoleValue" />
           </div>
 
           <div class="form-group">
@@ -332,6 +334,7 @@
       </div>
     </div>
 
+    <!-- ===== SCRIPTS ===== -->
     <script type="module">
       import { auth, onAuthStateChanged } from "../config/firebase.js";
       window.firebase = { auth, onAuthStateChanged };

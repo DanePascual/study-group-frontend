@@ -16,11 +16,13 @@ window.addEventListener("adminUserReady", () => {
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-admins] Initializing...");
 
+  // Setup event listeners immediately
+  setupEventListeners();
+
   // Wait for admin user to be set
   const checkAdminInterval = setInterval(() => {
     if (window.adminUser) {
       clearInterval(checkAdminInterval);
-      setupEventListeners();
       loadAdmins();
     }
   }, 100);
@@ -94,7 +96,9 @@ async function loadAdmins() {
     displayAdmins(allAdmins);
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to load admins: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load admins: ${err.message}`);
+    }
     document.getElementById("adminsList").innerHTML =
       '<tr><td colspan="6" class="error-message">Error loading admins. Please try again.</td></tr>';
   }
@@ -212,7 +216,9 @@ async function viewAdminDetails(uid) {
     openModal("viewAdminModal");
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to load admin details: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to load admin details: ${err.message}`);
+    }
   }
 }
 
@@ -226,12 +232,16 @@ async function confirmPromoteUser() {
       "Promoting qualified user";
 
     if (!email) {
-      window.showError("Please enter user email");
+      if (window.showError) {
+        window.showError("Please enter user email");
+      }
       return;
     }
 
     if (!role) {
-      window.showError("Please select a role");
+      if (window.showError) {
+        window.showError("Please select a role");
+      }
       return;
     }
 
@@ -253,13 +263,17 @@ async function confirmPromoteUser() {
     });
 
     console.log("[admin-admins] ✅ User promoted:", response);
-    window.showSuccess(`User promoted to ${role} successfully!`);
+    if (window.showSuccess) {
+      window.showSuccess(`User promoted to ${role} successfully!`);
+    }
     closeModal("promoteUserModal");
     resetPromoteForm();
     loadAdmins();
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to promote user: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to promote user: ${err.message}`);
+    }
   }
 }
 
@@ -338,7 +352,9 @@ async function executeConfirmedAction() {
     pendingAction = null;
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to execute action: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to execute action: ${err.message}`);
+    }
   }
 }
 
@@ -359,11 +375,15 @@ async function suspendAdmin(uid) {
     );
 
     console.log("[admin-admins] ✅ Admin suspended:", response);
-    window.showSuccess("Admin suspended successfully");
+    if (window.showSuccess) {
+      window.showSuccess("Admin suspended successfully");
+    }
     loadAdmins();
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to suspend admin: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to suspend admin: ${err.message}`);
+    }
   }
 }
 
@@ -380,11 +400,15 @@ async function unsuspendAdmin(uid) {
     );
 
     console.log("[admin-admins] ✅ Admin unsuspended:", response);
-    window.showSuccess("Admin unsuspended successfully");
+    if (window.showSuccess) {
+      window.showSuccess("Admin unsuspended successfully");
+    }
     loadAdmins();
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to unsuspend admin: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to unsuspend admin: ${err.message}`);
+    }
   }
 }
 
@@ -401,11 +425,15 @@ async function removeAdmin(uid) {
     });
 
     console.log("[admin-admins] ✅ Admin removed:", response);
-    window.showSuccess("Admin removed successfully");
+    if (window.showSuccess) {
+      window.showSuccess("Admin removed successfully");
+    }
     loadAdmins();
   } catch (err) {
     console.error("[admin-admins] Error:", err.message);
-    window.showError(`Failed to remove admin: ${err.message}`);
+    if (window.showError) {
+      window.showError(`Failed to remove admin: ${err.message}`);
+    }
   }
 }
 
@@ -474,5 +502,8 @@ window.confirmUnsuspendAdmin = confirmUnsuspendAdmin;
 window.confirmRemoveAdmin = confirmRemoveAdmin;
 window.toggleModalCustomSelect = toggleModalCustomSelect;
 window.selectModalCustomOption = selectModalCustomOption;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.resetPromoteForm = resetPromoteForm;
 
 console.log("[admin-admins] Module loaded ✅");
