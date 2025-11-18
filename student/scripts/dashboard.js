@@ -1,6 +1,7 @@
 // frontend/student/scripts/dashboard.js
 // ✅ CLEANED: Removed admin panel check (moved to sidebar.js)
 // ✅ UPDATED: Active Study Rooms now match study-rooms.js design
+// ✅ FIXED: Use fetchJsonWithAuth instead of plain fetch for study rooms
 
 import { auth, db, onAuthStateChanged } from "../../config/firebase.js";
 import {
@@ -759,6 +760,7 @@ function validateUserSession() {
 // ====================
 // Room Pagination Logic
 // ====================
+// ✅ FIXED: Use fetchJsonWithAuth instead of plain fetch for authenticated requests
 async function fetchAndRenderRooms() {
   const roomGrid = document.getElementById("roomGrid");
   const paginationDivId = "roomPagination";
@@ -768,9 +770,8 @@ async function fetchAndRenderRooms() {
   if (!roomGrid) return;
   roomGrid.innerHTML = `<div style="text-align:center;">Loading rooms...</div>`;
   try {
-    const response = await fetch(STUDY_GROUPS_API);
-    if (!response.ok) throw new Error("Failed to fetch study rooms.");
-    allRooms = await response.json();
+    // ✅ FIXED: Changed from fetch() to fetchJsonWithAuth() to include auth token
+    allRooms = await fetchJsonWithAuth(STUDY_GROUPS_API);
 
     if (!Array.isArray(allRooms) || allRooms.length === 0) {
       roomGrid.innerHTML = `<div style="text-align:center; color:var(--medium-text);">No active study rooms yet.</div>`;
