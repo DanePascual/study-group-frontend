@@ -2,6 +2,10 @@
 // ✅ UPDATED: Removed uploader avatars/initials from Recent Uploads table
 // ✅ UPDATED: Removed "View Details" button - only Download button remains
 // ✅ FIXED: Downloaded files excluded from "All Resources" tab
+// ✅ FIXED: undefined.click error in openUploadModal
+// ✅ UPDATED: Removed upload button from empty states
+// ✅ NEW: Generate default cover images for resources without custom covers
+// ✅ UPDATED: Removed redundant title from default cover image
 
 import { auth, db } from "../../config/firebase.js";
 import { apiUrl } from "../../config/appConfig.js";
@@ -290,6 +294,64 @@ function getCategoryLabel(category) {
     other: "Other",
   };
   return labels[category] || (category ? category : "Uncategorized");
+}
+
+// ===== UPDATED: Generate default cover image based on file type (NO TITLE) =====
+function generateDefaultCover(fileType, title = "Untitled") {
+  const colors = {
+    pdf: { bg: "#f44336", icon: "bi-file-earmark-pdf" },
+    doc: { bg: "#2196f3", icon: "bi-file-earmark-word" },
+    docx: { bg: "#2196f3", icon: "bi-file-earmark-word" },
+    ppt: { bg: "#ff9800", icon: "bi-file-earmark-slides" },
+    pptx: { bg: "#ff9800", icon: "bi-file-earmark-slides" },
+  };
+
+  const typeInfo = colors[fileType?.toLowerCase()] || {
+    bg: "#607d8b",
+    icon: "bi-file-earmark",
+  };
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 400;
+  canvas.height = 300;
+
+  const ctx = canvas.getContext("2d");
+
+  // Background color
+  ctx.fillStyle = typeInfo.bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Add gradient overlay
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, typeInfo.bg);
+  gradient.addColorStop(1, adjustBrightness(typeInfo.bg, -20));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // ✅ UPDATED: Only display file type, no title
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.font = "bold 64px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const displayText = fileType ? fileType.toUpperCase() : "FILE";
+  ctx.fillText(displayText, canvas.width / 2, canvas.height / 2);
+
+  // Return as data URL
+  return canvas.toDataURL("image/png");
+}
+
+// ===== Helper: Adjust color brightness =====
+function adjustBrightness(color, percent) {
+  const hex = color.replace("#", "");
+  const num = parseInt(hex, 16);
+  const amt = Math.round(2.55 * percent);
+
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) + amt) & 0x00ff));
+  const B = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+
+  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
 // API Calls
@@ -634,6 +696,7 @@ function renderRecentUploadsTable(allResources) {
   });
 }
 
+// ===== UPDATED: Render Resources Grid with default cover image =====
 function renderResourcesGrid(resources) {
   const grid = document.getElementById("resourcesGrid");
   const recentSection = document.getElementById("recentUploadsSection");
@@ -649,12 +712,6 @@ function renderResourcesGrid(resources) {
       <div class="empty-state-icon"><i class="bi bi-folder2-open"></i></div>
       <div class="empty-state-text">No resources found</div>
     `;
-    const btn = document.createElement("button");
-    btn.className = "upload-btn";
-    btn.type = "button";
-    btn.innerHTML = `<i class="bi bi-upload"></i> Upload a Resource`;
-    btn.addEventListener("click", openUploadModal);
-    empty.appendChild(btn);
     grid.appendChild(empty);
     return;
   }
@@ -670,11 +727,14 @@ function renderResourcesGrid(resources) {
     const img = document.createElement("img");
     img.className = "resource-card-img lazy-image";
     img.alt = "";
+
+    // ✅ NEW: Generate default cover if no image is provided
     if (isSafeUrl(res.coverImage)) {
       img.src = res.coverImage;
     } else {
-      img.src = "";
+      img.src = generateDefaultCover(res.type, res.title);
     }
+
     header.appendChild(img);
 
     const typeBadge = document.createElement("div");
@@ -806,6 +866,7 @@ function renderResourcesGrid(resources) {
   initLazyLoading();
 }
 
+// ===== UPDATED: Render Resources List - NO UPLOAD BUTTON IN EMPTY STATE =====
 function renderResourcesList(resources) {
   const list = document.getElementById("resourcesList");
   const recentSection = document.getElementById("recentUploadsSection");
@@ -821,12 +882,6 @@ function renderResourcesList(resources) {
       <div class="empty-state-icon"><i class="bi bi-folder2-open"></i></div>
       <div class="empty-state-text">No resources found</div>
     `;
-    const btn = document.createElement("button");
-    btn.className = "upload-btn";
-    btn.type = "button";
-    btn.innerHTML = `<i class="bi bi-upload"></i> Upload a Resource`;
-    btn.addEventListener("click", openUploadModal);
-    empty.appendChild(btn);
     list.appendChild(empty);
     return;
   }
@@ -1227,39 +1282,53 @@ function editResourceUI(id) {
 }
 window.editResourceUI = editResourceUI;
 
+// ===== FIXED: openUploadModal with proper null checks =====
 function openUploadModal(editResource = null) {
   const uploadForm = document.getElementById("uploadForm");
   if (uploadForm) uploadForm.reset();
+
   const uploadLabel = document.getElementById("uploadModalLabel");
   if (uploadLabel) uploadLabel.textContent = "Upload Resource";
+
   const filePreview = document.getElementById("filePreview");
   if (filePreview) filePreview.style.display = "none";
+
   const fileDropArea = document.getElementById("fileDropArea");
   if (fileDropArea) fileDropArea.classList.remove("file-input-hidden");
+
   const coverPreview = document.getElementById("coverImagePreview");
   if (coverPreview) {
     coverPreview.src = "";
     coverPreview.style.display = "none";
   }
+
   const coverInput = document.getElementById("coverImageInput");
   if (coverInput) coverInput.value = "";
+
   state.editingMode = false;
   state.editResourceId = null;
+
   document
     .querySelectorAll(".tag-option")
     .forEach((tag) => tag.classList.remove("selected"));
+
   const selTags = document.getElementById("selectedTags");
   if (selTags) selTags.value = "";
 
+  // If editing a resource
   if (editResource) {
     state.editingMode = true;
     state.editResourceId = editResource.id;
+
     const titleEl = document.getElementById("resourceTitle");
     if (titleEl) titleEl.value = editResource.title || "";
+
     const descEl = document.getElementById("resourceDesc");
     if (descEl) descEl.value = editResource.desc || "";
+
     const catEl = document.getElementById("resourceCategory");
     if (catEl) catEl.value = editResource.category || "";
+
     if (editResource.tags && Array.isArray(editResource.tags)) {
       document.querySelectorAll(".tag-option").forEach((tagOption) => {
         const tagValue = tagOption.getAttribute("data-tag");
@@ -1269,20 +1338,26 @@ function openUploadModal(editResource = null) {
       });
       if (selTags) selTags.value = JSON.stringify(editResource.tags);
     }
-    if (editResource.coverImage) {
-      if (coverPreview) {
-        coverPreview.src = editResource.coverImage;
-        coverPreview.style.display = "block";
-      }
+
+    if (editResource.coverImage && coverPreview) {
+      coverPreview.src = editResource.coverImage;
+      coverPreview.style.display = "block";
     }
+
     if (uploadForm) uploadForm.setAttribute("data-edit-id", editResource.id);
     if (uploadLabel) uploadLabel.textContent = "Edit Resource";
-    if (fileDropArea) fileDropArea.classList.add("file-input-hidden");
+
+    if (fileDropArea) {
+      fileDropArea.classList.add("file-input-hidden");
+    }
+
     if (filePreview) filePreview.style.display = "flex";
+
     const selectedFileName = document.getElementById("selectedFileName");
-    if (selectedFileName)
+    if (selectedFileName) {
       selectedFileName.textContent =
         editResource.title + "." + (editResource.type || "");
+    }
   }
 
   const uploadModal = document.getElementById("uploadModal");
