@@ -10,6 +10,9 @@ window.adminUser = null;
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[admin-auth] Initializing...");
 
+  // ✅ FIXED: Hide all admin content by default until access is verified
+  hideAdminContent();
+
   // Wait for Firebase to be ready
   if (typeof window.firebase === "undefined") {
     console.error("[admin-auth] Firebase not loaded");
@@ -94,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Setup leave admin button
       setupLeaveAdminButton();
 
-      // Check page-specific access after a small delay to ensure DOM is ready
+      // ✅ FIXED: Check page access BEFORE showing content
       setTimeout(() => {
         checkPageAccess();
       }, 100);
@@ -104,6 +107,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
+// ===== Hide admin content by default =====
+function hideAdminContent() {
+  const adminContent =
+    document.getElementById("adminContent") ||
+    document.querySelector(".admin-content");
+  const sidebar = document.querySelector(".admin-sidebar");
+  const mainContent = document.querySelector(".admin-main");
+
+  if (adminContent) {
+    adminContent.style.display = "none";
+  }
+  if (sidebar) {
+    sidebar.style.display = "none";
+  }
+  if (mainContent) {
+    mainContent.style.display = "none";
+  }
+
+  console.log("[admin-auth] ✅ Admin content hidden by default");
+}
 
 // ===== Check page-specific access =====
 function checkPageAccess() {
@@ -142,6 +166,7 @@ function checkPageAccess() {
         "[admin-auth] ❌ Access denied - user role is:",
         window.adminUser.role
       );
+      // ✅ FIXED: Show access denied modal without showing content
       showAccessDeniedModal();
       return false;
     } else {
@@ -158,12 +183,23 @@ function checkPageAccess() {
 
 // ===== Show admin content =====
 function showAdminContent() {
-  const adminContent = document.getElementById("adminContent");
+  const adminContent =
+    document.getElementById("adminContent") ||
+    document.querySelector(".admin-content");
+  const sidebar = document.querySelector(".admin-sidebar");
+  const mainContent = document.querySelector(".admin-main");
 
   if (adminContent) {
     adminContent.style.display = "block";
-    console.log("[admin-auth] ✅ Showing admin content");
   }
+  if (sidebar) {
+    sidebar.style.display = "block";
+  }
+  if (mainContent) {
+    mainContent.style.display = "block";
+  }
+
+  console.log("[admin-auth] ✅ Showing admin content");
 }
 
 // ===== Show access denied modal =====
@@ -175,18 +211,28 @@ function showAccessDeniedModal() {
     console.log("[admin-auth] ❌ Showing access denied modal");
   } else {
     console.warn("[admin-auth] Access denied modal not found in DOM");
+    // Fallback: redirect immediately if modal not found
+    setTimeout(() => {
+      location.href = "dashboard.html";
+    }, 500);
   }
 }
 
-// ===== Handle access denied modal close =====
+// ✅ FIXED: Handle access denied modal close - redirect to admin dashboard
 function closeAccessDeniedModal() {
   const modal = document.getElementById("accessDeniedModal");
   if (modal) {
     modal.classList.remove("active");
   }
-  // Redirect to welcome page
-  console.log("[admin-auth] Redirecting to welcome page");
-  location.href = "index.html";
+  // Hide sidebar and content before redirecting
+  const sidebar = document.querySelector(".admin-sidebar");
+  const mainContent = document.querySelector(".admin-main");
+  if (sidebar) sidebar.style.display = "none";
+  if (mainContent) mainContent.style.display = "none";
+
+  // ✅ FIXED: Redirect to admin dashboard instead of index.html
+  console.log("[admin-auth] Redirecting to admin dashboard");
+  location.href = "dashboard.html";
 }
 
 // ===== Update admin display =====
@@ -217,7 +263,6 @@ function setupLogoutButton() {
       try {
         await window.firebase.auth.signOut();
         console.log("[admin-auth] ✅ Logged out successfully");
-        // ✅ FIXED: Use relative path from admin directory
         location.href = "../student/pages/login.html";
       } catch (err) {
         console.error("[admin-auth] Logout error:", err);
@@ -236,7 +281,6 @@ function setupLeaveAdminButton() {
     btn.addEventListener("click", async () => {
       console.log("[admin-auth] Leaving admin panel...");
       try {
-        // ✅ FIXED: Use relative path from admin directory
         console.log("[admin-auth] Redirecting to student dashboard");
         location.href = "../student/pages/dashboard.html";
       } catch (err) {
@@ -255,7 +299,6 @@ async function getAdminToken() {
 }
 
 // ===== API Helper =====
-// ✅ UPDATED: Use imported adminApiUrl
 async function adminFetch(endpoint, options = {}) {
   try {
     const token = await getAdminToken();
@@ -284,7 +327,6 @@ async function adminFetch(endpoint, options = {}) {
 // ===== Show error message =====
 function showError(message) {
   console.error("[admin-auth] Error:", message);
-  // Removed alert() - use modals instead
 }
 
 // ===== Show success message =====
