@@ -6,6 +6,7 @@
 // ✅ UPDATED: Removed upload button from empty states
 // ✅ NEW: Generate default cover images for resources without custom covers
 // ✅ UPDATED: Removed redundant title from default cover image
+// ✅ FIXED: Upload button and controls now show when returning from Recent Uploads tab
 
 import { auth, db } from "../../config/firebase.js";
 import { apiUrl } from "../../config/appConfig.js";
@@ -468,7 +469,7 @@ function getFileTypeInfo(filename) {
   return { icon: "bi-file-earmark", color: "#607d8b" };
 }
 
-// ===== UPDATED: Filter logic with recent uploads table =====
+// ===== UPDATED: Filter logic with recent uploads table and FIXED header bar visibility =====
 function applyFiltersAndSort() {
   let filtered = state.resources || [];
 
@@ -566,25 +567,30 @@ function applyFiltersAndSort() {
       break;
   }
 
-  // For recent tab, always sort by newest
+  // ✅ FIXED: Show/hide header and sections based on tab
+  const headerBar = document.getElementById("resourcesHeaderBar");
+  const gridEl = document.getElementById("resourcesGrid");
+  const listEl = document.getElementById("resourcesList");
+  const recentSection = document.getElementById("recentUploadsSection");
+
   if (state.currentTab === "recent") {
-    filtered = filtered.sort(
-      (a, b) =>
-        (toJsDate(b.createdAt)?.getTime() || 0) -
-        (toJsDate(a.createdAt)?.getTime() || 0)
-    );
+    // Hide header bar and grid/list views for recent tab
+    if (headerBar) headerBar.style.display = "none";
+    if (gridEl) gridEl.style.display = "none";
+    if (listEl) listEl.style.display = "none";
+    if (recentSection) recentSection.style.display = "block";
     renderRecentUploadsTable(filtered);
   } else {
+    // ✅ SHOW header bar for all other tabs
+    if (headerBar) headerBar.style.display = "flex";
+    if (recentSection) recentSection.style.display = "none";
+
     // For other tabs, use grid/list view
     if (state.currentView === "grid") {
-      const gridEl = document.getElementById("resourcesGrid");
-      const listEl = document.getElementById("resourcesList");
       if (gridEl) gridEl.style.display = "grid";
       if (listEl) listEl.style.display = "none";
       renderResourcesGrid(filtered);
     } else {
-      const gridEl = document.getElementById("resourcesGrid");
-      const listEl = document.getElementById("resourcesList");
       if (gridEl) gridEl.style.display = "none";
       if (listEl) listEl.style.display = "block";
       renderResourcesList(filtered);
@@ -595,21 +601,12 @@ function applyFiltersAndSort() {
 // ===== NEW: Render Recent Uploads Table - MINIMAL (ONLY DOWNLOAD BUTTON) =====
 function renderRecentUploadsTable(allResources) {
   const section = document.getElementById("recentUploadsSection");
-  const headerBar = document.getElementById("resourcesHeaderBar");
   const tbody = document.getElementById("recentUploadsTable");
   const loadMoreBtn = document.getElementById("loadMoreBtn");
   const loadMoreContainer = document.getElementById("loadMoreContainer");
   const emptyState = document.getElementById("recentEmptyState");
-  const gridEl = document.getElementById("resourcesGrid");
-  const listEl = document.getElementById("resourcesList");
 
   if (!section || !tbody) return;
-
-  // Hide other views
-  if (headerBar) headerBar.style.display = "none";
-  if (gridEl) gridEl.style.display = "none";
-  if (listEl) listEl.style.display = "none";
-  section.style.display = "block";
 
   // Handle empty state
   if (!allResources || allResources.length === 0) {
@@ -699,10 +696,8 @@ function renderRecentUploadsTable(allResources) {
 // ===== UPDATED: Render Resources Grid with default cover image =====
 function renderResourcesGrid(resources) {
   const grid = document.getElementById("resourcesGrid");
-  const recentSection = document.getElementById("recentUploadsSection");
   if (!grid) return;
 
-  if (recentSection) recentSection.style.display = "none";
   grid.innerHTML = "";
 
   if (!resources || resources.length === 0) {
@@ -869,10 +864,8 @@ function renderResourcesGrid(resources) {
 // ===== UPDATED: Render Resources List - NO UPLOAD BUTTON IN EMPTY STATE =====
 function renderResourcesList(resources) {
   const list = document.getElementById("resourcesList");
-  const recentSection = document.getElementById("recentUploadsSection");
   if (!list) return;
 
-  if (recentSection) recentSection.style.display = "none";
   list.innerHTML = "";
 
   if (!resources || resources.length === 0) {
